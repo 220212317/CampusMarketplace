@@ -1,40 +1,53 @@
-// src/screens/LandingScreen.tsx
-import React, { useEffect, useRef } from 'react';
+// src/screens/LandingScreen.tsx (Supabase version)
+import React, { useEffect, useRef, useState } from 'react';
 import {
   View,
   Text,
   StyleSheet,
   TouchableOpacity,
-  Image,
   Animated,
   Dimensions,
+  StatusBar,
   ScrollView,
+  ActivityIndicator,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
-import { useTheme } from '../hooks/useTheme';
 import { LinearGradient } from 'expo-linear-gradient';
+import { supabase } from '../lib/supabase';
 
-const { width, height } = Dimensions.get('window');
+const { width } = Dimensions.get('window');
+
+// Design system tokens
+const COLORS = {
+  cream: '#fdf6f0',
+  terracotta: '#c75c3e',
+  terracottaSoft: 'rgba(199, 92, 62, 0.15)',
+  terracottaSofter: 'rgba(199, 92, 62, 0.08)',
+  textDark: '#2b2320',
+  textMuted: '#6b5f59',
+  white: '#ffffff',
+};
 
 export default function LandingScreen({ navigation }: any) {
-  const { colors } = useTheme();
-  
-  // Animation values
   const fadeAnim = useRef(new Animated.Value(0)).current;
-  const slideAnim = useRef(new Animated.Value(50)).current;
-  const scaleAnim = useRef(new Animated.Value(0.8)).current;
+  const scaleAnim = useRef(new Animated.Value(0.9)).current;
+  const slideAnim = useRef(new Animated.Value(30)).current;
   
+  // State for live stats
+  const [stats, setStats] = useState({
+    users: 0,
+    reviews: 0,
+  });
+  const [loading, setLoading] = useState(true);
+
   useEffect(() => {
+    fetchStats();
+    
     Animated.parallel([
       Animated.timing(fadeAnim, {
         toValue: 1,
-        duration: 1000,
-        useNativeDriver: true,
-      }),
-      Animated.timing(slideAnim, {
-        toValue: 0,
-        duration: 800,
+        duration: 700,
         useNativeDriver: true,
       }),
       Animated.spring(scaleAnim, {
@@ -43,157 +56,193 @@ export default function LandingScreen({ navigation }: any) {
         tension: 40,
         useNativeDriver: true,
       }),
+      Animated.timing(slideAnim, {
+        toValue: 0,
+        duration: 600,
+        useNativeDriver: true,
+      }),
     ]).start();
   }, []);
 
-  const features = [
-    {
-      icon: 'book-outline',
-      title: 'Buy & Sell Textbooks',
-      description: 'Find affordable textbooks from fellow students',
+  const fetchStats = async () => {
+    try {
+      // Fetch counts from Supabase
+      const [usersResult, reviewsResult] = await Promise.all([
+        supabase.from('profiles').select('*', { count: 'exact', head: true }),
+        supabase.from('reviews').select('*', { count: 'exact', head: true }),
+      ]);
+
+      setStats({
+        users: usersResult.count || 0,
+        reviews: reviewsResult.count || 0,
+      });
+    } catch (error) {
+      console.error('Error fetching stats:', error);
+      // Set fallback values
+      setStats({
+        users: 0,
+        reviews: 0,
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Format number with K suffix
+  const formatNumber = (num: number) => {
+    if (num >= 1000) {
+      return (num / 1000).toFixed(1) + 'K';
+    }
+    return num.toString();
+  };
+
+  // Define stats display items with real data
+  const STATS_ITEMS = [
+    { 
+      value: formatNumber(stats.users), 
+      label: 'Students',
+      icon: 'people-outline',
     },
-    {
-      icon: 'phone-portrait-outline',
-      title: 'Resell Electronics',
-      description: 'Sell your used electronics to the campus community',
-    },
-    {
-      icon: 'restaurant-outline',
-      title: 'Order Food',
-      description: 'Discover delicious food from campus vendors',
-    },
-    {
-      icon: 'megaphone-outline',
-      title: 'Campus Announcements',
-      description: 'Stay updated with events and services on campus',
-    },
-    {
-      icon: 'search-outline',
-      title: 'Lost & Found',
-      description: 'Report lost items or help others find theirs',
+    { 
+      value: formatNumber(stats.reviews), 
+      label: 'Reviews',
+      icon: 'star-outline',
     },
   ];
 
   return (
-    <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
+    <SafeAreaView style={styles.container}>
+      <StatusBar barStyle="dark-content" backgroundColor={COLORS.cream} />
+      
       <ScrollView 
         showsVerticalScrollIndicator={false}
         contentContainerStyle={styles.scrollContent}
+        bounces={false}
       >
-        {/* Animated Logo & Header */}
-        <Animated.View 
-          style={[
-            styles.headerContainer,
-            {
-              opacity: fadeAnim,
-              transform: [{ scale: scaleAnim }],
-            }
-          ]}
-        >
-          <View style={[styles.logoContainer, { backgroundColor: colors.primary }]}>
-            <Text style={styles.logoText}>CM</Text>
+        {/* Header: CM logo + wordmark, Sign In pill */}
+        <View style={styles.header}>
+          <View style={styles.brandRow}>
+            <View style={styles.logoBox}>
+              <Text style={styles.logoBoxText}>CM</Text>
+            </View>
+            <View>
+              <Text style={styles.brandLine1}>COMMUNITY</Text>
+              <Text style={styles.brandLine2}>MARKETPLACE</Text>
+            </View>
           </View>
-          <Text style={[styles.title, { color: colors.text }]}>
-            Campus Marketplace
+
+          <TouchableOpacity
+            style={styles.signInPill}
+            onPress={() => navigation.navigate('Login')}
+            activeOpacity={0.8}
+          >
+            <Ionicons name="log-in-outline" size={16} color={COLORS.textDark} />
+            <Text style={styles.signInPillText}>Sign In</Text>
+          </TouchableOpacity>
+        </View>
+
+        {/* Hero: concentric circle with bag icon */}
+        <Animated.View
+          style={[
+            styles.heroWrapper,
+            { opacity: fadeAnim, transform: [{ scale: scaleAnim }] },
+          ]}
+        >
+          <View style={styles.circleOuter}>
+            <View style={styles.circleInner}>
+              <Ionicons name="bag-outline" size={72} color={COLORS.white} />
+            </View>
+          </View>
+        </Animated.View>
+
+        {/* Title + tagline */}
+        <Animated.View style={{ opacity: fadeAnim }}>
+          <Text style={styles.title}>
+            Simplifying Campus{'\n'}Commerce
           </Text>
-          <Text style={[styles.subtitle, { color: colors.textLight }]}>
-            Simplifying Campus Commerce
+
+          <Text style={styles.tagline}>
+            The ultimate platform for staff and students to buy textbooks,
+            resell electronics, find lost items, order delicious food, and
+            announce university services safely.
           </Text>
         </Animated.View>
 
-        {/* Tagline */}
-        <Animated.View 
-          style={[
-            styles.taglineContainer,
-            {
-              opacity: fadeAnim,
-              transform: [{ translateY: slideAnim }],
-            }
-          ]}
-        >
-          <Text style={[styles.tagline, { color: colors.text }]}>
-            The ultimate platform for staff and students to buy textbooks, resell electronics, find lost items, order delicious food, and announce university services safely.
-          </Text>
-        </Animated.View>
-
-        {/* Features Grid */}
-        <Animated.View 
-          style={[
-            styles.featuresContainer,
-            {
-              opacity: fadeAnim,
-              transform: [{ translateY: slideAnim }],
-            }
-          ]}
-        >
-          <Text style={[styles.sectionTitle, { color: colors.text }]}>
-            What You Can Do
-          </Text>
-          
-          <View style={styles.featuresGrid}>
-            {features.map((feature, index) => (
-              <View key={index} style={[styles.featureCard, { backgroundColor: colors.card }]}>
-                <View style={[styles.featureIcon, { backgroundColor: colors.primary + '15' }]}>
-                  <Ionicons name={feature.icon as any} size={28} color={colors.primary} />
+        {/* Stats bar with live data */}
+        <Animated.View style={[styles.statsBar, { opacity: fadeAnim }]}>
+          {loading ? (
+            <View style={styles.loadingContainer}>
+              <ActivityIndicator size="small" color={COLORS.terracotta} />
+              <Text style={styles.loadingText}>Loading stats...</Text>
+            </View>
+          ) : (
+            STATS_ITEMS.map((stat, index) => (
+              <React.Fragment key={stat.label}>
+                <View style={styles.statItem}>
+                  <View style={styles.statIconContainer}>
+                    <Ionicons name={stat.icon as any} size={20} color={COLORS.terracotta} />
+                  </View>
+                  <Text style={styles.statValue}>{stat.value}</Text>
+                  <Text style={styles.statLabel}>{stat.label}</Text>
                 </View>
-                <Text style={[styles.featureTitle, { color: colors.text }]}>
-                  {feature.title}
-                </Text>
-                <Text style={[styles.featureDescription, { color: colors.textLight }]}>
-                  {feature.description}
-                </Text>
-              </View>
-            ))}
-          </View>
+                {index < STATS_ITEMS.length - 1 && <View style={styles.statDivider} />}
+              </React.Fragment>
+            ))
+          )}
         </Animated.View>
 
-        {/* Action Buttons */}
-        <Animated.View 
+        {/* Get Started Button */}
+        <Animated.View
           style={[
             styles.buttonContainer,
             {
               opacity: fadeAnim,
               transform: [{ translateY: slideAnim }],
-            }
+            },
           ]}
         >
           <TouchableOpacity
-            style={[styles.signUpButton, { backgroundColor: colors.primary }]}
+            style={styles.getStartedButton}
             onPress={() => navigation.navigate('SignUp')}
+            activeOpacity={0.8}
           >
-            <Text style={styles.signUpButtonText}>Get Started</Text>
-            <Ionicons name="arrow-forward" size={20} color="#ffffff" />
+            <LinearGradient
+              colors={[COLORS.terracotta, COLORS.terracotta + 'DD']}
+              style={styles.buttonGradient}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 0 }}
+            >
+              <Text style={styles.getStartedText}>Get Started</Text>
+              <Ionicons name="arrow-forward" size={20} color={COLORS.white} />
+            </LinearGradient>
           </TouchableOpacity>
 
           <TouchableOpacity
-            style={[styles.signInButton, { borderColor: colors.primary }]}
-            onPress={() => navigation.navigate('Login')}
+            style={styles.continueAsGuest}
+            onPress={() => {
+              navigation.navigate('Login');
+            }}
+            activeOpacity={0.7}
           >
-            <Text style={[styles.signInButtonText, { color: colors.primary }]}>
-              I Already Have an Account
-            </Text>
+            <Text style={styles.continueAsGuestText}>I Already Have an Account</Text>
           </TouchableOpacity>
         </Animated.View>
 
         {/* Footer */}
-        <View style={styles.footer}>
-          <Text style={[styles.footerText, { color: colors.textLight }]}>
+        <Animated.View style={[styles.footer, { opacity: fadeAnim }]}>
+          <Text style={styles.footerText}>
             By continuing, you agree to our
           </Text>
           <View style={styles.footerLinks}>
             <TouchableOpacity>
-              <Text style={[styles.footerLink, { color: colors.primary }]}>
-                Terms of Service
-              </Text>
+              <Text style={styles.footerLink}>Terms of Service</Text>
             </TouchableOpacity>
-            <Text style={[styles.footerDot, { color: colors.textLight }]}>•</Text>
+            <Text style={styles.footerDot}>•</Text>
             <TouchableOpacity>
-              <Text style={[styles.footerLink, { color: colors.primary }]}>
-                Privacy Policy
-              </Text>
+              <Text style={styles.footerLink}>Privacy Policy</Text>
             </TouchableOpacity>
           </View>
-        </View>
+        </Animated.View>
       </ScrollView>
     </SafeAreaView>
   );
@@ -202,153 +251,216 @@ export default function LandingScreen({ navigation }: any) {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+    backgroundColor: COLORS.cream,
   },
   scrollContent: {
     flexGrow: 1,
     paddingHorizontal: 24,
     paddingBottom: 20,
   },
-  headerContainer: {
+  header: {
+    flexDirection: 'row',
     alignItems: 'center',
-    paddingTop: 20,
-    paddingBottom: 16,
+    justifyContent: 'space-between',
+    marginTop: 8,
+    marginBottom: 8,
   },
-  logoContainer: {
-    width: 80,
-    height: 80,
-    borderRadius: 20,
+  brandRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+  },
+  logoBox: {
+    width: 52,
+    height: 52,
+    borderRadius: 16,
+    backgroundColor: COLORS.terracotta,
     justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: 16,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.1,
-    shadowRadius: 8,
-    elevation: 5,
   },
-  logoText: {
-    fontSize: 36,
+  logoBoxText: {
+    color: COLORS.white,
+    fontSize: 20,
     fontWeight: '800',
-    color: '#ffffff',
+  },
+  brandLine1: {
+    color: COLORS.terracotta,
+    fontSize: 15,
+    fontWeight: '800',
+    letterSpacing: 0.3,
+  },
+  brandLine2: {
+    color: COLORS.textDark,
+    fontSize: 15,
+    fontWeight: '800',
+    letterSpacing: 0.3,
+    marginTop: -2,
+  },
+  signInPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingVertical: 10,
+    paddingHorizontal: 16,
+    borderRadius: 25,
+    backgroundColor: COLORS.white,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.06,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  signInPillText: {
+    color: COLORS.textDark,
+    fontSize: 14,
+    fontWeight: '700',
+  },
+  heroWrapper: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: 20,
+    marginBottom: 24,
+  },
+  circleOuter: {
+    width: width * 0.68,
+    height: width * 0.68,
+    borderRadius: (width * 0.68) / 2,
+    backgroundColor: COLORS.terracottaSofter,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  circleInner: {
+    width: width * 0.5,
+    height: width * 0.5,
+    borderRadius: (width * 0.5) / 2,
+    backgroundColor: COLORS.terracottaSoft,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   title: {
-    fontSize: 28,
-    fontWeight: '700',
+    fontSize: 30,
+    fontWeight: '800',
+    color: COLORS.textDark,
     textAlign: 'center',
-  },
-  subtitle: {
-    fontSize: 16,
-    fontWeight: '500',
-    marginTop: 4,
-    textAlign: 'center',
-  },
-  taglineContainer: {
-    marginVertical: 16,
-    paddingHorizontal: 4,
+    lineHeight: 36,
+    marginBottom: 16,
   },
   tagline: {
     fontSize: 15,
-    lineHeight: 22,
+    lineHeight: 24,
+    color: COLORS.textDark,
     textAlign: 'center',
-    opacity: 0.8,
+    marginBottom: 24,
+    opacity: 0.85,
   },
-  featuresContainer: {
-    marginTop: 16,
-  },
-  sectionTitle: {
-    fontSize: 20,
-    fontWeight: '700',
-    marginBottom: 16,
-    textAlign: 'center',
-  },
-  featuresGrid: {
+  statsBar: {
     flexDirection: 'row',
-    flexWrap: 'wrap',
-    justifyContent: 'space-between',
-    gap: 12,
-  },
-  featureCard: {
-    width: (width - 60) / 2,
-    padding: 16,
-    borderRadius: 16,
     alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: COLORS.white,
+    borderRadius: 25,
+    paddingVertical: 16,
+    paddingHorizontal: 24,
+    marginBottom: 24,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.05,
-    shadowRadius: 4,
+    shadowRadius: 6,
     elevation: 2,
-    borderWidth: 1,
-    borderColor: '#E8E8E8',
+    minHeight: 80,
   },
-  featureIcon: {
-    width: 56,
-    height: 56,
-    borderRadius: 28,
-    justifyContent: 'center',
+  statItem: {
+    flex: 1,
     alignItems: 'center',
-    marginBottom: 10,
   },
-  featureTitle: {
-    fontSize: 14,
-    fontWeight: '600',
-    textAlign: 'center',
+  statIconContainer: {
     marginBottom: 4,
   },
-  featureDescription: {
+  statValue: {
+    fontSize: 20,
+    fontWeight: '800',
+    color: COLORS.terracotta,
+  },
+  statLabel: {
     fontSize: 12,
+    color: COLORS.textMuted,
+    marginTop: 2,
     textAlign: 'center',
-    lineHeight: 16,
+  },
+  statDivider: {
+    width: 1,
+    height: 36,
+    backgroundColor: '#e8ddd5',
+  },
+  loadingContainer: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 12,
+    paddingVertical: 8,
+  },
+  loadingText: {
+    fontSize: 14,
+    color: COLORS.textMuted,
   },
   buttonContainer: {
-    marginTop: 28,
-    gap: 12,
+    marginBottom: 16,
   },
-  signUpButton: {
+  getStartedButton: {
+    borderRadius: 25,
+    overflow: 'hidden',
+    shadowColor: COLORS.terracotta,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.2,
+    shadowRadius: 8,
+    elevation: 4,
+  },
+  buttonGradient: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     paddingVertical: 16,
-    borderRadius: 25,
     gap: 8,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.1,
-    shadowRadius: 8,
-    elevation: 3,
   },
-  signUpButtonText: {
-    color: '#ffffff',
+  getStartedText: {
+    color: COLORS.white,
     fontSize: 18,
-    fontWeight: '600',
+    fontWeight: '700',
+    letterSpacing: 0.5,
   },
-  signInButton: {
-    paddingVertical: 14,
-    borderRadius: 25,
+  continueAsGuest: {
+    paddingVertical: 12,
     alignItems: 'center',
-    borderWidth: 2,
   },
-  signInButtonText: {
-    fontSize: 16,
-    fontWeight: '600',
+  continueAsGuestText: {
+    color: COLORS.textMuted,
+    fontSize: 14,
+    fontWeight: '500',
   },
   footer: {
-    marginTop: 24,
     alignItems: 'center',
+    marginTop: 8,
   },
   footerText: {
     fontSize: 12,
+    color: COLORS.textMuted,
+    opacity: 0.7,
   },
   footerLinks: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
+    gap: 6,
     marginTop: 4,
   },
   footerLink: {
     fontSize: 12,
+    color: COLORS.terracotta,
     fontWeight: '500',
   },
   footerDot: {
     fontSize: 12,
+    color: COLORS.textMuted,
+    opacity: 0.5,
   },
 });

@@ -16,6 +16,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../hooks/useTheme';
 import { useAuth } from '../hooks/useAuth';
 import { supabase } from '../lib/supabase';
+import { adminAPI } from '../lib/api';
 
 export default function ProfileScreen({ navigation }: any) {
   const { colors } = useTheme();
@@ -24,9 +25,11 @@ export default function ProfileScreen({ navigation }: any) {
   const [profilePhoto, setProfilePhoto] = useState<string | null>(null);
   const [imageLoading, setImageLoading] = useState(true);
   const [imageError, setImageError] = useState(false);
+  const [isAdmin, setIsAdmin] = useState(false);
 
   useEffect(() => {
     loadProfilePhoto();
+    checkAdminStatus();
   }, [user]);
 
   const loadProfilePhoto = async () => {
@@ -53,10 +56,21 @@ export default function ProfileScreen({ navigation }: any) {
     }
   };
 
+  const checkAdminStatus = async () => {
+    try {
+      const { isAdmin: admin } = await adminAPI.checkAdminStatus();
+      setIsAdmin(admin);
+      console.log('👑 Admin status:', admin);
+    } catch (error) {
+      console.error('Error checking admin status:', error);
+      setIsAdmin(false);
+    }
+  };
+
   const getInitials = () => {
-    const first = user?.firstName?.[0] || '';
-    const last = user?.lastName?.[0] || '';
-    return (first + last).toUpperCase() || '?';
+    const first = user?.firstName?.[0] || 'A';
+    const last = user?.lastName?.[0] || 'S';
+    return (first + last).toUpperCase();
   };
 
   const menuItems = [
@@ -73,12 +87,12 @@ export default function ProfileScreen({ navigation }: any) {
     {
       icon: 'location-outline',
       title: 'Address',
-      onPress: () => Alert.alert('Coming Soon', 'Phola, iyeza. Sungxama'),
+      onPress: () => Alert.alert('Coming Soon', 'Address management will be available soon'),
     },
     {
       icon: 'card-outline',
       title: 'Payment Methods',
-      onPress: () => Alert.alert('Coming Soon', 'Phola, iyeza. Sungxama'),
+      onPress: () => Alert.alert('Coming Soon', 'Payment methods will be available soon'),
     },
     {
       icon: 'shield-outline',
@@ -88,9 +102,18 @@ export default function ProfileScreen({ navigation }: any) {
     {
       icon: 'help-circle-outline',
       title: 'Help Center',
-      onPress: () => Alert.alert('Coming Soon', 'Phola, iyeza. Sungxama'),
+      onPress: () => Alert.alert('Coming Soon', 'Help center will be available soon'),
     },
   ];
+
+  // Add admin menu item if user is admin
+  if (isAdmin) {
+    menuItems.push({
+      icon: 'shield-checkmark-outline',
+      title: 'Admin Panel',
+      onPress: () => navigation.navigate('AdminUsers'),
+    });
+  }
 
   const handleSignOut = async () => {
     try {
@@ -146,13 +169,21 @@ export default function ProfileScreen({ navigation }: any) {
             </View>
             <View style={styles.profileInfo}>
               <Text style={[styles.userName, { color: colors.text }]}>
-                {user?.firstName} {user?.lastName}
+                {user?.firstName || 'Athi'} {user?.lastName || 'Sintiya'}
               </Text>
               <Text style={[styles.userEmail, { color: colors.textLight }]}>
-                {user?.email}
+                {user?.email || 'lifezekiseathi@gmail.com'}
               </Text>
-              <View style={[styles.roleBadge, { backgroundColor: colors.primary }]}>
-                <Text style={styles.roleBadgeText}>{user?.role}</Text>
+              <View style={styles.badgeRow}>
+                <View style={[styles.roleBadge, { backgroundColor: colors.primary }]}>
+                  <Text style={styles.roleBadgeText}>{user?.role || 'Admin'}</Text>
+                </View>
+                {isAdmin && (
+                  <View style={[styles.adminBadge, { backgroundColor: colors.primary }]}>
+                    <Ionicons name="shield-checkmark" size={12} color="#ffffff" />
+                    <Text style={styles.adminBadgeText}>Admin</Text>
+                  </View>
+                )}
               </View>
             </View>
           </View>
@@ -271,17 +302,36 @@ const styles = StyleSheet.create({
     fontSize: 14,
     marginTop: 2,
   },
+  badgeRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 6,
+    marginTop: 6,
+  },
   roleBadge: {
     alignSelf: 'flex-start',
     paddingHorizontal: 12,
     paddingVertical: 4,
     borderRadius: 12,
-    marginTop: 6,
   },
   roleBadgeText: {
     color: '#ffffff',
     fontSize: 12,
     fontWeight: '600',
+  },
+  adminBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    alignSelf: 'flex-start',
+    paddingHorizontal: 10,
+    paddingVertical: 3,
+    borderRadius: 10,
+  },
+  adminBadgeText: {
+    color: '#ffffff',
+    fontSize: 10,
+    fontWeight: '700',
   },
   menuContainer: {
     paddingHorizontal: 16,

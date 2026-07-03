@@ -33,7 +33,7 @@ export default function LoginScreen({ navigation }: any) {
     try {
       await signIn(username, password);
       
-      // ✅ Step 1: Check if profile exists and is complete
+      // Check if profile exists
       try {
         const { data: profile } = await supabase
           .from('profiles')
@@ -44,7 +44,6 @@ export default function LoginScreen({ navigation }: any) {
         let currentProfile = profile;
 
         if (!currentProfile) {
-          // ✅ Step 2: Create profile if it doesn't exist
           const { data: userData } = await supabase.auth.getUser();
           if (userData.user) {
             const { data: newProfile } = await supabase
@@ -67,35 +66,43 @@ export default function LoginScreen({ navigation }: any) {
           }
         }
 
-        // ✅ Step 3: Check if profile is completed
-        if (!currentProfile || !currentProfile.profile_completed) {
-          // ✅ Step 4: Navigate to CompleteProfile
+        // ✅ Check if user is admin - skip profile completion
+        if (currentProfile?.is_admin === true && currentProfile?.role === 'Admin') {
+          console.log('👑 Admin user logged in, skipping profile check');
           navigation.reset({
             index: 0,
-            routes: [
-              {
-                name: 'CompleteProfile',
-                params: {
-                  email: username,
-                  role: currentProfile?.role || 'Student',
-                  userId: currentProfile?.id,
-                },
-              },
-            ],
+            routes: [{ name: 'MainTabs' }],
+          });
+          return;
+        }
+
+        // ✅ For non-admin users, check if profile is completed
+        if (!currentProfile || !currentProfile.profile_completed) {
+          navigation.replace('CompleteProfile', {
+            email: username,
+            role: currentProfile?.role || 'Student',
+            userId: currentProfile?.id,
           });
           return;
         }
       } catch (profileError) {
         console.log('⚠️ Profile check error:', profileError);
+        // If profile doesn't exist, go to CompleteProfile
+        navigation.replace('CompleteProfile', {
+          email: username,
+          role: 'Student',
+          userId: '',
+        });
+        return;
       }
 
-      // ✅ Step 5: Navigate to MainTabs (Main App)
+      // Navigate to MainTabs
       navigation.reset({
         index: 0,
         routes: [{ name: 'MainTabs' }],
       });
     } catch (error: any) {
-      // ✅ Step 6: Handle "Email not confirmed" error
+      // Handle "Email not confirmed" error
       if (error.message && error.message.includes('Email not confirmed')) {
         Alert.alert(
           'Email Not Verified',

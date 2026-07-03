@@ -1,5 +1,5 @@
-// src/screens/ChatListScreen.tsx (Polling version - no realtime)
-import React, { useState, useEffect, useRef } from 'react';
+// src/screens/ChatListScreen.tsx
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -20,28 +20,24 @@ export default function ChatListScreen({ navigation }: any) {
   const { user } = useAuth();
   const [conversations, setConversations] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
-  const [refreshing, setRefreshing] = useState(false);
-  const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const [subscription, setSubscription] = useState<any>(null);
 
   useEffect(() => {
     loadConversations();
-    
-    // Poll for updates every 5 seconds instead of using realtime
-    intervalRef.current = setInterval(() => {
-      loadConversationsSilently();
-    }, 5000);
+    subscribeToUpdates();
     
     return () => {
-      if (intervalRef.current) {
-        clearInterval(intervalRef.current);
+      if (subscription) {
+        chatAPI.unsubscribe(subscription);
       }
     };
-  }, [user?.id]);
+  }, []);
 
   const loadConversations = async () => {
     try {
       setLoading(true);
-      await fetchConversations();
+      const data = await chatAPI.getConversations(user?.id || '');
+      setConversations(data);
     } catch (error) {
       console.error('Error loading conversations:', error);
     } finally {
@@ -49,23 +45,22 @@ export default function ChatListScreen({ navigation }: any) {
     }
   };
 
-  const loadConversationsSilently = async () => {
-    try {
-      await fetchConversations();
-    } catch (error) {
-      // Silent fail for polling
-    }
-  };
-
-  const fetchConversations = async () => {
-    const data = await chatAPI.getConversations(user?.id || '');
-    setConversations(data);
-  };
-
-  const handleRefresh = async () => {
-    setRefreshing(true);
-    await loadConversations();
-    setRefreshing(false);
+  const subscribeToUpdates = () => {
+    if (!user?.id) return;
+    
+    const channel = chatAPI.subscribeToConversations(user.id, (updated) => {
+      setConversations(prev => {
+        const index = prev.findIndex(c => c.id === updated.id);
+        if (index !== -1) {
+          const newList = [...prev];
+          newList[index] = updated;
+          return newList;
+        }
+        return [updated, ...prev];
+      });
+    });
+    
+    setSubscription(channel);
   };
 
   const getOtherUser = (conversation: any) => {
@@ -85,16 +80,6 @@ export default function ChatListScreen({ navigation }: any) {
     return date.toLocaleDateString();
   };
 
-  const handleConversationPress = (item: any) => {
-    const otherUser = getOtherUser(item);
-    navigation.navigate('ChatDetail', {
-      conversationId: item.id,
-      productId: item.product_id,
-      otherUser: otherUser,
-      product: item.product,
-    });
-  };
-
   const renderConversation = ({ item }: { item: any }) => {
     const otherUser = getOtherUser(item);
     const isBuyer = item.buyer_id === user?.id;
@@ -102,7 +87,12 @@ export default function ChatListScreen({ navigation }: any) {
     return (
       <TouchableOpacity
         style={[styles.conversationItem, { backgroundColor: colors.card }]}
-        onPress={() => handleConversationPress(item)}
+        onPress={() => navigation.navigate('ChatDetail', {
+          conversationId: item.id,
+          productId: item.product_id,
+          otherUser: otherUser,
+          product: item.product,
+        })}
       >
         <View style={styles.avatarContainer}>
           {otherUser?.profile_photo_url ? (
@@ -164,7 +154,9 @@ export default function ChatListScreen({ navigation }: any) {
       <View style={styles.headerContainer}>
         <Text style={[styles.title, { color: colors.text }]}>Messages</Text>
         {conversations.length === 0 && (
-          <TouchableOpacity onPress={() => navigation.navigate('Browse')}>
+          <TouchableOpacity 
+            onPress={() => navigation.navigate('MainTabs', { screen: 'Browse' })}
+          >
             <Text style={[styles.startChat, { color: colors.primary }]}>Start Chat</Text>
           </TouchableOpacity>
         )}
@@ -179,7 +171,7 @@ export default function ChatListScreen({ navigation }: any) {
           </Text>
           <TouchableOpacity
             style={[styles.browseButton, { backgroundColor: colors.primary }]}
-            onPress={() => navigation.navigate('Browse')}
+            onPress={() => navigation.navigate('MainTabs', { screen: 'Browse' })}
           >
             <Text style={styles.browseButtonText}>Browse Products</Text>
           </TouchableOpacity>
@@ -191,8 +183,6 @@ export default function ChatListScreen({ navigation }: any) {
           keyExtractor={(item) => item.id}
           contentContainerStyle={styles.list}
           showsVerticalScrollIndicator={false}
-          refreshing={refreshing}
-          onRefresh={handleRefresh}
         />
       )}
     </SafeAreaView>

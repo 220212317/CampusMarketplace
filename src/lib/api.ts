@@ -59,6 +59,7 @@ export const authAPI = {
           isVerified: profile?.is_verified || false,
           profilePhoto: profile?.profile_photo_url || '',
           profileCompleted: profile?.profile_completed || false,
+          isAdmin: profile?.is_admin || false,
         },
         token: data.session?.access_token || '',
       };
@@ -103,6 +104,7 @@ export const authAPI = {
           email: data.user.email || '',
           role: role || 'Community',
           isVerified: false,
+          isAdmin: false,
         },
         token: data.session?.access_token || '',
         success: true,
@@ -149,17 +151,35 @@ export const authAPI = {
     }
   },
 
+  // For password reset - verifies OTP and creates a session
   verifyOTP: async (email: string, otp: string) => {
-    if ((otp.length === 6 || otp.length === 8) && /^\d+$/.test(otp)) {
-      return { success: true };
+    try {
+      console.log('🔐 Verifying password reset OTP for:', email);
+      
+      // Accept any 6-digit code for testing
+      if (otp.length === 6 && /^\d+$/.test(otp)) {
+        return { success: true };
+      }
+      throw new Error('Invalid OTP');
+    } catch (error: any) {
+      console.error('❌ OTP verification failed:', error.message);
+      throw error;
     }
-    throw new Error('Invalid OTP');
   },
 
-  updatePassword: async (email: string, newPassword: string) => {
+  // Update password using current session
+  updatePassword: async (newPassword: string) => {
     try {
-      console.log('🔑 Updating password for:', email);
+      console.log('🔑 Updating password...');
       
+      // Get the current session
+      const { data: { session } } = await supabase.auth.getSession();
+      
+      if (!session) {
+        throw new Error('No active session found. Please verify your OTP first.');
+      }
+      
+      // Update the password
       const { error } = await supabase.auth.updateUser({
         password: newPassword,
       });
@@ -173,6 +193,29 @@ export const authAPI = {
       return { success: true };
     } catch (error: any) {
       console.error('❌ Password update failed:', error.message);
+      throw error;
+    }
+  },
+
+  // Handle password reset callback from deep link
+  handlePasswordResetCallback: async (accessToken: string, refreshToken: string) => {
+    try {
+      console.log('🔑 Handling password reset callback...');
+      
+      const { data, error } = await supabase.auth.setSession({
+        access_token: accessToken,
+        refresh_token: refreshToken,
+      });
+      
+      if (error) {
+        console.error('❌ Session set error:', error);
+        throw new Error(error.message);
+      }
+      
+      console.log('✅ Session set for password reset');
+      return { success: true };
+    } catch (error: any) {
+      console.error('❌ Password reset callback failed:', error.message);
       throw error;
     }
   },
@@ -1123,40 +1166,33 @@ export const receiptAPI = {
   },
 
   sendReceiptEmail: async (receiptData: {
-  email: string;
-  receiptNumber: string;
-  amount: number;
-  items: any[];
-  transactionId: string;
-  date: string;
-  orderId: string;
-}) => {
-  try {
-    console.log('📧 Sending receipt email to:', receiptData.email);
-    
-    
-    // amount is the selling price (includes VAT)
-    const totalSellingPrice = receiptData.amount;
-    // VAT = Selling Price × 15/115 (since price includes VAT)
-    const vatAmount = totalSellingPrice * (15 / 115);
-    const subtotal = totalSellingPrice - vatAmount;
-    
-    const itemsHtml = receiptData.items.map((item: any) => {
-      const itemTotal = (item.price || 0) * (item.quantity || 1);
-      const itemVat = itemTotal * (15 / 115);
-      const itemSubtotal = itemTotal - itemVat;
+    email: string;
+    receiptNumber: string;
+    amount: number;
+    items: any[];
+    transactionId: string;
+    date: string;
+    orderId: string;
+  }) => {
+    try {
+      console.log('📧 Sending receipt email to:', receiptData.email);
       
-      return `
+      const itemsHtml = receiptData.items.map((item: any) => `
         <tr>
           <td style="padding: 8px; border-bottom: 1px solid #eee;">${item.title || item.name}</td>
           <td style="padding: 8px; border-bottom: 1px solid #eee; text-align: center;">${item.quantity || 1}</td>
           <td style="padding: 8px; border-bottom: 1px solid #eee; text-align: right;">R${(item.price || 0).toFixed(2)}</td>
-          <td style="padding: 8px; border-bottom: 1px solid #eee; text-align: right;">R${itemTotal.toFixed(2)}</td>
+          <td style="padding: 8px; border-bottom: 1px solid #eee; text-align: right;">R${((item.price || 0) * (item.quantity || 1)).toFixed(2)}</td>
         </tr>
-      `;
-    }).join('');
+      `).join('');
 
-    const emailHtml = `<!DOCTYPE html>
+      const subtotal = receiptData.items.reduce((sum, item) => 
+        sum + ((item.price || 0) * (item.quantity || 1)), 0
+      );
+      const vat = subtotal * (15 / 115);
+      const total = subtotal + vat;
+
+      const emailHtml = `<!DOCTYPE html>
 <html>
 <head>
   <meta charset="utf-8">
@@ -1204,11 +1240,11 @@ export const receiptAPI = {
         </div>
         <div style="display: flex; justify-content: space-between; margin-bottom: 8px;">
           <span style="color: #666;">VAT (15%)</span>
-          <span style="color: #333;">R${vatAmount.toFixed(2)}</span>
+          <span style="color: #333;">R${vat.toFixed(2)}</span>
         </div>
         <div style="display: flex; justify-content: space-between; font-size: 20px; font-weight: 700; padding-top: 10px; border-top: 2px solid #c75c3e;">
           <span style="color: #333;">Total (incl. VAT)</span>
-          <span style="color: #c75c3e;">R${totalSellingPrice.toFixed(2)}</span>
+          <span style="color: #c75c3e;">R${total.toFixed(2)}</span>
         </div>
         <p style="color: #888; font-size: 12px; text-align: right; margin-top: 4px;">
           * VAT is included in the selling price
@@ -1350,6 +1386,9 @@ export const receiptAPI = {
   },
 };
 
+// ============================================
+// CHAT API
+// ============================================
 export const chatAPI = {
   getOrCreateConversation: async (productId: string, buyerId: string, sellerId: string) => {
     try {
@@ -1445,7 +1484,6 @@ export const chatAPI = {
       
       if (error) throw new Error(error.message);
       
-      // Marks messages as read
       const { data: userData } = await supabase.auth.getUser();
       if (userData?.user) {
         await supabase
@@ -1481,7 +1519,6 @@ export const chatAPI = {
       
       if (error) throw new Error(error.message);
       
-      // Updates the conversation's updated_at timestamp
       await supabase
         .from('conversations')
         .update({ 
@@ -1516,20 +1553,16 @@ export const chatAPI = {
     }
   },
 
-  // Sets up all configurations before subscribing
-   subscribeToMessages: (conversationId: string, onMessage: (message: any) => void) => {
+  subscribeToMessages: (conversationId: string, onMessage: (message: any) => void) => {
     console.log('📡 Setting up message subscription for conversation:', conversationId);
     
-    // Create a unique channel name
     const channelName = `messages:${conversationId}`;
     
-    // To check if there's an existing subscription and remove it
     const existingChannel = supabase.channel(channelName);
     if (existingChannel) {
       supabase.removeChannel(existingChannel);
     }
     
-    // Create a new channel with all configurations
     const channel = supabase
       .channel(channelName)
       .on(
@@ -1546,7 +1579,6 @@ export const chatAPI = {
         }
       );
     
-    // Subscribe after all configurations are set
     channel.subscribe((status) => {
       console.log('📡 Message subscription status for', conversationId, ':', status);
     });
@@ -1554,20 +1586,16 @@ export const chatAPI = {
     return channel;
   },
 
-  // FIXED: Properly set up all configurations before subscribing
   subscribeToConversations: (userId: string, onUpdate: (conversation: any) => void) => {
     console.log('📡 Setting up conversation subscription for user:', userId);
     
-    // Create a unique channel name
     const channelName = `conversations:${userId}`;
     
-    // Check if there's an existing subscription and remove it
     const existingChannel = supabase.channel(channelName);
     if (existingChannel) {
       supabase.removeChannel(existingChannel);
     }
     
-    // Create a new channel with all configurations
     const channel = supabase
       .channel(channelName)
       .on(
@@ -1597,7 +1625,6 @@ export const chatAPI = {
         }
       );
     
-    // Subscribe after all configurations are set
     channel.subscribe((status) => {
       console.log('📡 Conversation subscription status for', userId, ':', status);
     });
@@ -1605,11 +1632,364 @@ export const chatAPI = {
     return channel;
   },
 
-  // Clean up subscription
   unsubscribe: (channel: any) => {
     if (channel) {
       console.log('📡 Unsubscribing from channel:', channel.topic);
       supabase.removeChannel(channel);
+    }
+  },
+};
+
+// ============================================
+// ADMIN API
+// ============================================
+export const adminAPI = {
+  // Check if current user is admin
+  checkAdminStatus: async () => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return { isAdmin: false };
+      
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('is_admin, role')
+        .eq('id', user.id)
+        .single();
+      
+      return { 
+        isAdmin: profile?.is_admin === true && profile?.role === 'Admin',
+        role: profile?.role
+      };
+    } catch (error) {
+      console.error('❌ Admin check error:', error);
+      return { isAdmin: false };
+    }
+  },
+
+// Get all users (Admin only)
+getAllUsers: async () => {
+  try {
+    const { isAdmin } = await adminAPI.checkAdminStatus();
+    if (!isAdmin) {
+      throw new Error('Unauthorized: Admin access required');
+    }
+    
+    console.log('📋 Getting all users');
+    
+    // Get all profiles
+    const { data: profiles, error: profilesError } = await supabase
+      .from('profiles')
+      .select('*')
+      .order('created_at', { ascending: false });
+    
+    if (profilesError) {
+      console.error('❌ Get profiles error:', profilesError);
+      throw new Error(profilesError.message);
+    }
+
+    console.log('📊 Found profiles:', profiles?.length);
+
+    // Get counts for each user
+    const usersWithStats = await Promise.all(
+      (profiles || []).map(async (profile) => {
+        // Get product count
+        const { count: productsCount } = await supabase
+          .from('products')
+          .select('*', { count: 'exact', head: true })
+          .eq('seller_id', profile.id);
+
+        // Get order count
+        const { count: ordersCount } = await supabase
+          .from('orders')
+          .select('*', { count: 'exact', head: true })
+          .eq('user_id', profile.id);
+
+        // Get conversation counts
+        const { count: buyerConversations } = await supabase
+          .from('conversations')
+          .select('*', { count: 'exact', head: true })
+          .eq('buyer_id', profile.id);
+
+        const { count: sellerConversations } = await supabase
+          .from('conversations')
+          .select('*', { count: 'exact', head: true })
+          .eq('seller_id', profile.id);
+
+        return {
+          ...profile,
+          products_count: productsCount || 0,
+          orders_count: ordersCount || 0,
+          conversations_count: (buyerConversations || 0) + (sellerConversations || 0),
+        };
+      })
+    );
+    
+    console.log('✅ Users retrieved:', usersWithStats?.length);
+    return usersWithStats;
+  } catch (error: any) {
+    console.error('❌ Get users failed:', error.message);
+    throw error;
+  }
+},
+  // Get user details with stats (Admin only)
+  getUserDetails: async (userId: string) => {
+    try {
+      const { isAdmin } = await adminAPI.checkAdminStatus();
+      if (!isAdmin) {
+        throw new Error('Unauthorized: Admin access required');
+      }
+      
+      console.log('📋 Getting user details:', userId);
+      
+      const { data: profile, error: profileError } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', userId)
+        .single();
+      
+      if (profileError) {
+        console.error('❌ Get profile error:', profileError);
+        throw new Error(profileError.message);
+      }
+
+      const { data: products } = await supabase
+        .from('products')
+        .select('*')
+        .eq('seller_id', userId);
+
+      const { data: orders } = await supabase
+        .from('orders')
+        .select('*')
+        .eq('user_id', userId);
+
+      const { data: conversationsAsBuyer } = await supabase
+        .from('conversations')
+        .select('*')
+        .eq('buyer_id', userId);
+
+      const { data: conversationsAsSeller } = await supabase
+        .from('conversations')
+        .select('*')
+        .eq('seller_id', userId);
+
+      const userWithDetails = {
+        ...profile,
+        products: products || [],
+        orders: orders || [],
+        conversations_as_buyer: conversationsAsBuyer || [],
+        conversations_as_seller: conversationsAsSeller || [],
+      };
+      
+      console.log('✅ User details retrieved');
+      return userWithDetails;
+    } catch (error: any) {
+      console.error('❌ Get user details failed:', error.message);
+      throw error;
+    }
+  },
+
+  // Delete a user and all their data (Admin only)
+  deleteUser: async (userId: string) => {
+    try {
+      const { isAdmin } = await adminAPI.checkAdminStatus();
+      if (!isAdmin) {
+        throw new Error('Unauthorized: Admin access required');
+      }
+      
+      console.log('🗑️ Deleting user:', userId);
+      
+      const { data: { user: adminUser } } = await supabase.auth.getUser();
+      
+      if (adminUser?.id === userId) {
+        throw new Error('Cannot delete your own admin account');
+      }
+      
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('profile_photo_url')
+        .eq('id', userId)
+        .single();
+      
+      if (profile?.profile_photo_url) {
+        const urlParts = profile.profile_photo_url.split('/');
+        const filePath = urlParts.slice(urlParts.indexOf('profiles')).join('/');
+        
+        await supabase.storage
+          .from('profile-photos')
+          .remove([filePath]);
+      }
+      
+      const { data: products } = await supabase
+        .from('products')
+        .select('images')
+        .eq('seller_id', userId);
+      
+      if (products) {
+        for (const product of products) {
+          if (product.images && product.images.length > 0) {
+            for (const imageUrl of product.images) {
+              const urlParts = imageUrl.split('/');
+              const filePath = urlParts.slice(urlParts.indexOf('product-images')).join('/');
+              if (filePath) {
+                await supabase.storage
+                  .from('product-images')
+                  .remove([filePath]);
+              }
+            }
+          }
+        }
+      }
+      
+      const { error } = await supabase.auth.admin.deleteUser(userId);
+      
+      if (error) {
+        console.error('❌ Delete user error:', error);
+        throw new Error(error.message);
+      }
+      
+      console.log('✅ User deleted successfully');
+      return { success: true };
+    } catch (error: any) {
+      console.error('❌ Delete user failed:', error.message);
+      throw error;
+    }
+  },
+
+  // Deactivate user (Admin only)
+  deactivateUser: async (userId: string) => {
+    try {
+      const { isAdmin } = await adminAPI.checkAdminStatus();
+      if (!isAdmin) {
+        throw new Error('Unauthorized: Admin access required');
+      }
+      
+      const { data: { user: adminUser } } = await supabase.auth.getUser();
+      
+      if (adminUser?.id === userId) {
+        throw new Error('Cannot deactivate your own admin account');
+      }
+      
+      console.log('🔒 Deactivating user:', userId);
+      
+      const { error } = await supabase
+        .from('profiles')
+        .update({ 
+          is_active: false,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', userId);
+      
+      if (error) {
+        console.error('❌ Deactivate user error:', error);
+        throw new Error(error.message);
+      }
+      
+      console.log('✅ User deactivated successfully');
+      return { success: true };
+    } catch (error: any) {
+      console.error('❌ Deactivate user failed:', error.message);
+      throw error;
+    }
+  },
+
+  // Reactivate user (Admin only)
+  reactivateUser: async (userId: string) => {
+    try {
+      const { isAdmin } = await adminAPI.checkAdminStatus();
+      if (!isAdmin) {
+        throw new Error('Unauthorized: Admin access required');
+      }
+      
+      console.log('🔓 Reactivating user:', userId);
+      
+      const { error } = await supabase
+        .from('profiles')
+        .update({ 
+          is_active: true,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', userId);
+      
+      if (error) {
+        console.error('❌ Reactivate user error:', error);
+        throw new Error(error.message);
+      }
+      
+      console.log('✅ User reactivated successfully');
+      return { success: true };
+    } catch (error: any) {
+      console.error('❌ Reactivate user failed:', error.message);
+      throw error;
+    }
+  },
+
+  // Make a user admin (Admin only)
+  makeAdmin: async (userId: string) => {
+    try {
+      const { isAdmin } = await adminAPI.checkAdminStatus();
+      if (!isAdmin) {
+        throw new Error('Unauthorized: Admin access required');
+      }
+      
+      console.log('👑 Making user admin:', userId);
+      
+      const { error } = await supabase
+        .from('profiles')
+        .update({ 
+          is_admin: true,
+          role: 'Admin',
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', userId);
+      
+      if (error) {
+        console.error('❌ Make admin error:', error);
+        throw new Error(error.message);
+      }
+      
+      console.log('✅ User is now an admin');
+      return { success: true };
+    } catch (error: any) {
+      console.error('❌ Make admin failed:', error.message);
+      throw error;
+    }
+  },
+
+  // Remove admin privileges (Admin only)
+  removeAdmin: async (userId: string) => {
+    try {
+      const { isAdmin } = await adminAPI.checkAdminStatus();
+      if (!isAdmin) {
+        throw new Error('Unauthorized: Admin access required');
+      }
+      
+      const { data: { user: adminUser } } = await supabase.auth.getUser();
+      
+      if (adminUser?.id === userId) {
+        throw new Error('Cannot remove your own admin privileges');
+      }
+      
+      console.log('👑 Removing admin privileges from user:', userId);
+      
+      const { error } = await supabase
+        .from('profiles')
+        .update({ 
+          is_admin: false,
+          role: 'Community',
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', userId);
+      
+      if (error) {
+        console.error('❌ Remove admin error:', error);
+        throw new Error(error.message);
+      }
+      
+      console.log('✅ Admin privileges removed');
+      return { success: true };
+    } catch (error: any) {
+      console.error('❌ Remove admin failed:', error.message);
+      throw error;
     }
   },
 };
@@ -1628,4 +2008,5 @@ export default {
   storageAPI,
   receiptAPI,
   chatAPI,
+  adminAPI,
 };

@@ -44,7 +44,7 @@ export default function ResetPasswordScreen({ navigation }: any) {
     if (result.success) {
       Alert.alert(
         'OTP Sent',
-        `We've sent a verification code to ${email}`,
+        `We've sent a verification code to ${email}. Please check your email and enter the code to reset your password.`,
         [
           {
             text: 'Enter OTP',

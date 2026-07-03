@@ -18,6 +18,8 @@ import ChangePasswordScreen from '../screens/ChangePasswordScreen';
 import CheckoutScreen from '../screens/CheckoutScreen';
 import ChatListScreen from '../screens/ChatListScreen';
 import ChatDetailScreen from '../screens/ChatDetailScreen';
+import AdminUsersScreen from '../screens/AdminUsersScreen';
+import AdminUserDetailScreen from '../screens/AdminUserDetailScreen';
 
 const Tab = createBottomTabNavigator();
 const Stack = createStackNavigator();
@@ -83,6 +85,8 @@ export default function MainNavigator() {
       <Stack.Screen name="Checkout" component={CheckoutScreen} />
       <Stack.Screen name="ChatList" component={ChatListScreen} />
       <Stack.Screen name="ChatDetail" component={ChatDetailScreen} />
+      <Stack.Screen name="AdminUsers" component={AdminUsersScreen} />
+      <Stack.Screen name="AdminUserDetail" component={AdminUserDetailScreen} />
     </Stack.Navigator>
   );
 }

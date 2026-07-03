@@ -76,8 +76,8 @@ export default function OTPResetScreen({ route, navigation }: any) {
 
     setIsLoading(true);
     try {
-      const result = await authAPI.verifyOTP(email, otpCode);
-      if (result.success) {
+      const result = await (authAPI as any).verifyOTP(email, otpCode);
+      if (result?.success) {
         Alert.alert(
           'Verification Successful',
           'You can now reset your password.',

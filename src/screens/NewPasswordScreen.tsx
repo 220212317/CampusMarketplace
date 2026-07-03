@@ -16,6 +16,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../hooks/useTheme';
 import { authAPI } from '../lib/api';
+import { supabase } from '../lib/supabase';
 
 export default function NewPasswordScreen({ route, navigation }: any) {
   const { colors } = useTheme();
@@ -48,20 +49,28 @@ export default function NewPasswordScreen({ route, navigation }: any) {
 
     setIsLoading(true);
     try {
-      await authAPI.updatePassword(email, newPassword);
+      // Update the password using the current session
+      const result = await authAPI.updatePassword(newPassword);
       
-      Alert.alert(
-        'Success!',
-        'Your password has been reset successfully.',
-        [
-          {
-            text: 'Sign In',
-            onPress: () => {
-              navigation.navigate('Login');
+      if (result.success) {
+        Alert.alert(
+          'Success!',
+          'Your password has been reset successfully.',
+          [
+            {
+              text: 'Sign In',
+              onPress: () => {
+                // Sign out to ensure clean state
+                supabase.auth.signOut();
+                navigation.reset({
+                  index: 0,
+                  routes: [{ name: 'Login' }],
+                });
+              }
             }
-          }
-        ]
-      );
+          ]
+        );
+      }
     } catch (error: any) {
       Alert.alert('Error', error.message || 'Failed to reset password. Please try again.');
     } finally {
