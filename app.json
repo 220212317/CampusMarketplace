@@ -16,7 +16,9 @@
       "infoPlist": {
         "CFBundleURLTypes": [
           {
-            "CFBundleURLSchemes": ["campusmarketplace"]
+            "CFBundleURLSchemes": [
+              "campusmarketplace"
+            ]
           }
         ]
       }
@@ -48,7 +50,8 @@
     },
     "plugins": [
       "expo-status-bar",
-      "expo-splash-screen"
+      "expo-splash-screen",
+      "expo-font"
     ],
     "extra": {
       "eas": {

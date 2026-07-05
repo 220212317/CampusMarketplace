@@ -13,10 +13,11 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
+import * as ImagePicker from 'expo-image-picker';
 import { useTheme } from '../hooks/useTheme';
 import { useAuth } from '../hooks/useAuth';
 import { supabase } from '../lib/supabase';
-import { adminAPI } from '../lib/api';
+import { storageAPI, adminAPI } from '../lib/api';
 
 export default function ProfileScreen({ navigation }: any) {
   const { colors } = useTheme();
@@ -26,6 +27,8 @@ export default function ProfileScreen({ navigation }: any) {
   const [imageLoading, setImageLoading] = useState(true);
   const [imageError, setImageError] = useState(false);
   const [isAdmin, setIsAdmin] = useState(false);
+  const [isUploading, setIsUploading] = useState(false);
+  const [showPhotoOptions, setShowPhotoOptions] = useState(false);
 
   useEffect(() => {
     loadProfilePhoto();
@@ -46,6 +49,7 @@ export default function ProfileScreen({ navigation }: any) {
         console.error('Error loading profile photo:', error);
       } else if (profile?.profile_photo_url) {
         console.log('✅ Loaded profile photo URL:', profile.profile_photo_url);
+        // Add cache-busting timestamp
         const separator = profile.profile_photo_url.includes('?') ? '&' : '?';
         setProfilePhoto(`${profile.profile_photo_url}${separator}t=${Date.now()}`);
         setImageError(false);
@@ -66,6 +70,194 @@ export default function ProfileScreen({ navigation }: any) {
       setIsAdmin(false);
     }
   };
+
+  const requestPermissions = async () => {
+    const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (status !== 'granted') {
+      Alert.alert('Permission Required', 'Please grant camera roll permissions to select a photo.');
+      return false;
+    }
+    return true;
+  };
+
+  const pickImage = async () => {
+    const hasPermission = await requestPermissions();
+    if (!hasPermission) return;
+
+    try {
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        allowsEditing: true,
+        aspect: [1, 1],
+        quality: 0.8,
+      });
+
+      if (!result.canceled && result.assets && result.assets.length > 0) {
+        const asset = result.assets[0];
+        const file = {
+          uri: asset.uri,
+          type: asset.mimeType || 'image/jpeg',
+          name: asset.fileName || `profile_${Date.now()}.jpg`,
+        };
+        await uploadProfilePhoto(file);
+      }
+    } catch (error) {
+      console.error('Error picking image:', error);
+      Alert.alert('Error', 'Failed to pick image. Please try again.');
+    }
+  };
+
+  const takePhoto = async () => {
+    const { status } = await ImagePicker.requestCameraPermissionsAsync();
+    if (status !== 'granted') {
+      Alert.alert('Permission Required', 'Please grant camera permissions to take a photo.');
+      return;
+    }
+
+    try {
+      const result = await ImagePicker.launchCameraAsync({
+        allowsEditing: true,
+        aspect: [1, 1],
+        quality: 0.8,
+      });
+
+      if (!result.canceled && result.assets && result.assets.length > 0) {
+        const asset = result.assets[0];
+        const file = {
+          uri: asset.uri,
+          type: asset.mimeType || 'image/jpeg',
+          name: asset.fileName || `profile_${Date.now()}.jpg`,
+        };
+        await uploadProfilePhoto(file);
+      }
+    } catch (error) {
+      console.error('Error taking photo:', error);
+      Alert.alert('Error', 'Failed to take photo. Please try again.');
+    }
+  };
+
+  const uploadProfilePhoto = async (file: any) => {
+    if (!user?.id) {
+      Alert.alert('Error', 'User not found');
+      return;
+    }
+
+    setIsUploading(true);
+    try {
+      console.log('📤 Uploading file:', file);
+      
+      const result = await storageAPI.uploadProfilePhoto(user.id, file);
+      console.log('✅ Upload result:', result);
+      
+      // Set the photo URL with cache-busting
+      const separator = result.url.includes('?') ? '&' : '?';
+      setProfilePhoto(`${result.url}${separator}t=${Date.now()}`);
+      setImageError(false);
+      setImageLoading(true);
+      
+      // Update user context
+      if (user) {
+        user.profilePhoto = result.url;
+      }
+      
+      Alert.alert('Success', 'Profile photo updated successfully!');
+      setShowPhotoOptions(false);
+    } catch (error: any) {
+      console.error('❌ Upload error:', error);
+      Alert.alert('Error', error.message || 'Failed to upload photo');
+    } finally {
+      setIsUploading(false);
+    }
+  };
+
+  const handleRemovePhoto = async () => {
+    Alert.alert(
+      'Remove Photo',
+      'Are you sure you want to remove your profile photo?',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Remove',
+          style: 'destructive',
+          onPress: async () => {
+            setIsUploading(true);
+            try {
+              await storageAPI.deleteProfilePhoto(user?.id || '');
+              setProfilePhoto(null);
+              setImageError(true);
+              if (user) {
+                user.profilePhoto = undefined;
+              }
+              Alert.alert('Success', 'Profile photo removed');
+              setShowPhotoOptions(false);
+            } catch (error: any) {
+              Alert.alert('Error', error.message || 'Failed to remove photo');
+            } finally {
+              setIsUploading(false);
+            }
+          }
+        }
+      ]
+    );
+  };
+
+  const renderPhotoOptions = () => (
+    <Modal
+      visible={showPhotoOptions}
+      transparent
+      animationType="slide"
+      onRequestClose={() => setShowPhotoOptions(false)}
+    >
+      <View style={styles.modalOverlay}>
+        <View style={[styles.modalContent, { backgroundColor: colors.card }]}>
+          <Text style={[styles.modalTitle, { color: colors.text }]}>
+            Change Profile Photo
+          </Text>
+          
+          <TouchableOpacity
+            style={[styles.modalOption, { borderBottomColor: colors.border }]}
+            onPress={takePhoto}
+          >
+            <Ionicons name="camera-outline" size={24} color={colors.primary} />
+            <Text style={[styles.modalOptionText, { color: colors.text }]}>
+              Take Photo
+            </Text>
+          </TouchableOpacity>
+          
+          <TouchableOpacity
+            style={[styles.modalOption, { borderBottomColor: colors.border }]}
+            onPress={pickImage}
+          >
+            <Ionicons name="images-outline" size={24} color={colors.primary} />
+            <Text style={[styles.modalOptionText, { color: colors.text }]}>
+              Choose from Gallery
+            </Text>
+          </TouchableOpacity>
+          
+          {profilePhoto && (
+            <TouchableOpacity
+              style={styles.modalOption}
+              onPress={handleRemovePhoto}
+            >
+              <Ionicons name="trash-outline" size={24} color={colors.error} />
+              <Text style={[styles.modalOptionText, { color: colors.error }]}>
+                Remove Photo
+              </Text>
+            </TouchableOpacity>
+          )}
+          
+          <TouchableOpacity
+            style={[styles.modalCancelButton, { borderColor: colors.border }]}
+            onPress={() => setShowPhotoOptions(false)}
+          >
+            <Text style={[styles.modalCancelText, { color: colors.text }]}>
+              Cancel
+            </Text>
+          </TouchableOpacity>
+        </View>
+      </View>
+    </Modal>
+  );
 
   const getInitials = () => {
     const first = user?.firstName?.[0] || 'A';
@@ -129,44 +321,59 @@ export default function ProfileScreen({ navigation }: any) {
       <ScrollView showsVerticalScrollIndicator={false}>
         <View style={styles.header}>
           <View style={styles.profileHeader}>
-            <View style={[styles.avatar, { backgroundColor: colors.primary }]}>
-              {profilePhoto && !imageError ? (
-                <>
-                  <Image 
-                    source={{ 
-                      uri: profilePhoto,
-                      headers: {
-                        'Cache-Control': 'no-cache',
-                      }
-                    }} 
-                    style={styles.avatarImage}
-                    onLoadStart={() => {
-                      console.log('🔄 Image loading started');
-                      setImageLoading(true);
-                    }}
-                    onLoad={() => {
-                      console.log('✅ Image loaded successfully');
-                      setImageLoading(false);
-                      setImageError(false);
-                    }}
-                    onError={(e) => {
-                      console.error('❌ Failed to load profile photo:', e.nativeEvent);
-                      setImageError(true);
-                      setImageLoading(false);
-                    }}
-                  />
-                  {imageLoading && (
-                    <View style={styles.imageLoadingOverlay}>
-                      <ActivityIndicator size="small" color="#ffffff" />
-                    </View>
-                  )}
-                </>
-              ) : (
-                <Text style={styles.avatarText}>
-                  {getInitials()}
-                </Text>
-              )}
-            </View>
+            <TouchableOpacity 
+              onPress={() => setShowPhotoOptions(true)}
+              disabled={isUploading}
+              activeOpacity={0.8}
+            >
+              <View style={[styles.avatar, { backgroundColor: colors.primary }]}>
+                {profilePhoto && !imageError ? (
+                  <>
+                    <Image 
+                      source={{ 
+                        uri: profilePhoto,
+                        headers: {
+                          'Cache-Control': 'no-cache',
+                        }
+                      }} 
+                      style={styles.avatarImage}
+                      onLoadStart={() => {
+                        console.log('🔄 Image loading started');
+                        setImageLoading(true);
+                      }}
+                      onLoad={() => {
+                        console.log('✅ Image loaded successfully');
+                        setImageLoading(false);
+                        setImageError(false);
+                      }}
+                      onError={(e) => {
+                        console.error('❌ Failed to load profile photo:', e.nativeEvent);
+                        setImageError(true);
+                        setImageLoading(false);
+                      }}
+                    />
+                    {imageLoading && (
+                      <View style={styles.imageLoadingOverlay}>
+                        <ActivityIndicator size="small" color="#ffffff" />
+                      </View>
+                    )}
+                  </>
+                ) : (
+                  <Text style={styles.avatarText}>
+                    {getInitials()}
+                  </Text>
+                )}
+                {isUploading && (
+                  <View style={styles.uploadingOverlay}>
+                    <ActivityIndicator size="small" color="#ffffff" />
+                  </View>
+                )}
+                <View style={[styles.editBadge, { backgroundColor: colors.primary }]}>
+                  <Ionicons name="camera" size={14} color="#ffffff" />
+                </View>
+              </View>
+            </TouchableOpacity>
+            
             <View style={styles.profileInfo}>
               <Text style={[styles.userName, { color: colors.text }]}>
                 {user?.firstName || 'Athi'} {user?.lastName || 'Sintiya'}
@@ -244,6 +451,8 @@ export default function ProfileScreen({ navigation }: any) {
           </View>
         </Modal>
       </ScrollView>
+
+      {renderPhotoOptions()}
     </SafeAreaView>
   );
 }
@@ -290,6 +499,28 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(0,0,0,0.3)',
     justifyContent: 'center',
     alignItems: 'center',
+  },
+  uploadingOverlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: 'rgba(0,0,0,0.4)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  editBadge: {
+    position: 'absolute',
+    bottom: 0,
+    right: 0,
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 2,
+    borderColor: '#FFFFFF',
   },
   profileInfo: {
     flex: 1,
@@ -407,6 +638,31 @@ const styles = StyleSheet.create({
     backgroundColor: '#F44336',
   },
   modalButtonText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#ffffff',
+  },
+  modalOption: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 16,
+    borderBottomWidth: 1,
+    gap: 12,
+    width: '100%',
+  },
+  modalOptionText: {
+    fontSize: 16,
+    fontWeight: '500',
+  },
+  modalCancelButton: {
+    paddingVertical: 14,
+    borderRadius: 25,
+    alignItems: 'center',
+    marginTop: 12,
+    borderWidth: 1,
+    width: '100%',
+  },
+  modalCancelText: {
     fontSize: 16,
     fontWeight: '600',
   },

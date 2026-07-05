@@ -17,6 +17,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../hooks/useTheme';
 import { useAuth } from '../hooks/useAuth';
 import { chatAPI } from '../lib/api';
+import { chatSubscriptionManager } from '../lib/chatSubscriptions';
 
 export default function ChatDetailScreen({ route, navigation }: any) {
   const { colors } = useTheme();
@@ -27,51 +28,54 @@ export default function ChatDetailScreen({ route, navigation }: any) {
   const [loading, setLoading] = useState(true);
   const [sending, setSending] = useState(false);
   const flatListRef = useRef<FlatList>(null);
-  const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const isMounted = useRef(true);
+
+  const addMessage = (message: any) => {
+    setMessages(prev => {
+      if (prev.some(m => m.id === message.id)) {
+        return prev;
+      }
+      return [...prev, message];
+    });
+  };
 
   useEffect(() => {
     isMounted.current = true;
     loadMessages();
-    
-    // Poll for new messages every 3 seconds
-    intervalRef.current = setInterval(() => {
-      if (isMounted.current) {
-        loadMessagesSilently();
+
+    chatSubscriptionManager.subscribeToMessages(conversationId, (newMessage) => {
+      if (!isMounted.current) return;
+
+      addMessage(newMessage);
+
+      // If the incoming message is from the other person, mark it read
+      // immediately since this screen is currently open and visible.
+      if (newMessage.sender_id !== user?.id) {
+        chatAPI.markAsRead(conversationId, user?.id || '').catch(() => {});
       }
-    }, 3000);
-    
+
+      setTimeout(() => {
+        flatListRef.current?.scrollToEnd({ animated: true });
+      }, 100);
+    });
+
     return () => {
       isMounted.current = false;
-      if (intervalRef.current) {
-        clearInterval(intervalRef.current);
-      }
+      chatSubscriptionManager.unsubscribe(`messages:${conversationId}`);
     };
   }, [conversationId]);
 
   const loadMessages = async () => {
     try {
       setLoading(true);
-      await fetchMessages();
+      const data = await chatAPI.getMessages(conversationId);
+      if (isMounted.current) {
+        setMessages(data);
+      }
     } catch (error) {
       console.error('Error loading messages:', error);
     } finally {
       setLoading(false);
-    }
-  };
-
-  const loadMessagesSilently = async () => {
-    try {
-      await fetchMessages();
-    } catch (error) {
-      // Silent fail for polling
-    }
-  };
-
-  const fetchMessages = async () => {
-    const data = await chatAPI.getMessages(conversationId);
-    if (isMounted.current) {
-      setMessages(data);
     }
   };
 
@@ -85,7 +89,7 @@ export default function ChatDetailScreen({ route, navigation }: any) {
         user?.id || '',
         inputText.trim()
       );
-      setMessages(prev => [...prev, newMessage]);
+      addMessage(newMessage);
       setInputText('');
       
       // Scroll to bottom

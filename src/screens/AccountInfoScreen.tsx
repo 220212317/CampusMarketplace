@@ -27,6 +27,12 @@ export default function AccountInfoScreen({ navigation }: any) {
   const [isEditing, setIsEditing] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [profilePhoto, setProfilePhoto] = useState<string | null>(null);
+  // Bumped every time we get a fresh photo URL, appended as a cache-busting
+  // query param. This matters because the Supabase CDN can cache a 404
+  // response for a path that didn't exist yet (e.g. before the storage
+  // bucket was created) â€” without this, the same URL string can keep
+  // resolving to that cached 404 even after the file genuinely exists.
+  const [photoVersion, setPhotoVersion] = useState(Date.now());
   const [showPhotoOptions, setShowPhotoOptions] = useState(false);
   const [formData, setFormData] = useState({
     name: `${user?.firstName || ''} ${user?.lastName || ''}`.trim(),
@@ -56,6 +62,7 @@ export default function AccountInfoScreen({ navigation }: any) {
       } else if (profile?.profile_photo_url) {
         console.log('✅ Loaded profile photo:', profile.profile_photo_url);
         setProfilePhoto(profile.profile_photo_url);
+        setPhotoVersion(Date.now());
       }
     } catch (error) {
       console.error('Error loading profile photo:', error);
@@ -146,8 +153,10 @@ export default function AccountInfoScreen({ navigation }: any) {
       const result = await storageAPI.uploadProfilePhoto(user.id, file);
       console.log('✅ Upload result:', result);
       
-      // Set the photo URL
+      // Set the photo URL and force a cache-bust so the new image
+      // doesn't get shadowed by a stale cached response for the same URL
       setProfilePhoto(result.url);
+      setPhotoVersion(Date.now());
       
       // Update user context
       if (user) {
@@ -322,10 +331,13 @@ export default function AccountInfoScreen({ navigation }: any) {
             <View style={[styles.photoWrapper, { borderColor: colors.primary }]}>
               {profilePhoto ? (
                 <Image
-                  source={{ uri: profilePhoto }}
+                  source={{
+                    uri: `${profilePhoto}${profilePhoto.includes('?') ? '&' : '?'}v=${photoVersion}`,
+                  }}
                   style={styles.photo}
-                  onError={() => {
-                    console.error('❌ Failed to load profile photo');
+                  onLoad={() => console.log('✅ Profile photo image loaded')}
+                  onError={(e) => {
+                    console.error('❌ Failed to load profile photo:', e.nativeEvent);
                     setProfilePhoto(null);
                   }}
                 />

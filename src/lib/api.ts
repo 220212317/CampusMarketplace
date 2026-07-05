@@ -1,6 +1,20 @@
 // src/lib/api.ts
 import { supabase } from './supabase';
 import { User, Product, Post, Order, PaymentMethod, PostType } from '../types';
+import * as FileSystem from 'expo-file-system/legacy';
+import { decode as decodeBase64 } from 'base64-arraybuffer';
+
+// Reads a local file URI (from expo-image-picker / camera) and returns
+// real binary data. Passing the { uri, type, name } object directly to
+// supabase.storage.upload() does NOT work in React Native — it gets
+// serialized incorrectly and results in a corrupted, unreadable file
+// on the server (symptom: "unknown image format" when trying to display it).
+const fileToArrayBuffer = async (fileUri: string) => {
+  const base64 = await FileSystem.readAsStringAsync(fileUri, {
+    encoding: FileSystem.EncodingType.Base64,
+  });
+  return decodeBase64(base64);
+};
 
 // ============================================
 // AUTH API (Uses Supabase Auth)
@@ -940,9 +954,13 @@ export const storageAPI = {
     try {
       console.log('📤 Uploading image:', filePath);
       
+      const arrayBuffer = await fileToArrayBuffer(file.uri);
+      
       const { data, error } = await supabase.storage
         .from('product-images')
-        .upload(filePath, file);
+        .upload(filePath, arrayBuffer, {
+          contentType: file.type || 'image/jpeg',
+        });
       
       if (error) {
         console.error('❌ Upload image error:', error);
@@ -979,11 +997,14 @@ export const storageAPI = {
       
       console.log('📤 Uploading to path:', filePath);
       
+      const arrayBuffer = await fileToArrayBuffer(file.uri);
+      
       const { data, error } = await supabase.storage
         .from('profile-photos')
-        .upload(filePath, file, {
+        .upload(filePath, arrayBuffer, {
           upsert: true,
           cacheControl: '3600',
+          contentType: file.type || `image/${fileExtension}`,
         });
       
       if (error) {

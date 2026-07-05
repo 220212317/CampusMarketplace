@@ -100,7 +100,7 @@ export default function LandingScreen({ navigation }: any) {
   const STATS_ITEMS = [
     { 
       value: formatNumber(stats.users), 
-      label: 'Students',
+      label: 'Users',
       icon: 'people-outline',
     },
     { 

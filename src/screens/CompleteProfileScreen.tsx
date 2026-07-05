@@ -50,10 +50,6 @@ export default function CompleteProfileScreen({ route, navigation }: any) {
   // Community Specific
   const [communityType, setCommunityType] = useState('');
 
-  // Prefer the role/userId passed from SignUp -> EmailVerification -> here,
-  // since AuthContext deliberately doesn't set `user` until the account is
-  // verified and signed in. Falling back to `user` covers the case where
-  // this screen is reached after login instead (e.g. an incomplete profile).
   const userRole = role || user?.role || 'Student';
   const userId = paramUserId || user?.id;
 
@@ -66,6 +62,52 @@ export default function CompleteProfileScreen({ route, navigation }: any) {
     const cleaned = phone.replace(/\s/g, '');
     const phoneRegex = /^(\+27|0)[6-8][0-9]{8}$/;
     return phoneRegex.test(cleaned);
+  };
+
+  // Helper function to ensure profile exists
+  const ensureProfileExists = async (userId: string, email: string, role: string) => {
+    try {
+      // Check if profile exists
+      const { data: existingProfile, error: checkError } = await supabase
+        .from('profiles')
+        .select('id')
+        .eq('id', userId)
+        .maybeSingle();
+
+      if (checkError && checkError.code !== 'PGRST116') {
+        console.error('❌ Check error:', checkError);
+        throw new Error(checkError.message);
+      }
+
+      if (!existingProfile) {
+        // Profile doesn't exist, create it
+        console.log('📝 Creating new profile for user:', userId);
+        const { error: insertError } = await supabase
+          .from('profiles')
+          .insert([
+            {
+              id: userId,
+              email: email,
+              role: role,
+              is_verified: false,
+              profile_completed: false,
+              created_at: new Date().toISOString(),
+              updated_at: new Date().toISOString(),
+            },
+          ]);
+
+        if (insertError) {
+          console.error('❌ Insert error:', insertError);
+          throw new Error(insertError.message);
+        }
+        console.log('✅ Profile created successfully');
+      } else {
+        console.log('✅ Profile already exists');
+      }
+    } catch (error: any) {
+      console.error('❌ ensureProfileExists error:', error);
+      throw error;
+    }
   };
 
   const handleComplete = async () => {
@@ -139,6 +181,10 @@ export default function CompleteProfileScreen({ route, navigation }: any) {
         Alert.alert('Error', 'Please enter your business type');
         return;
       }
+      if (!businessRegistrationNumber.trim()) {
+        Alert.alert('Error', 'Please enter your business registration number');
+        return;
+      }
       if (!businessDescription.trim()) {
         Alert.alert('Error', 'Please enter a business description');
         return;
@@ -153,37 +199,38 @@ export default function CompleteProfileScreen({ route, navigation }: any) {
     }
 
     setIsLoading(true);
-    
-    // Prepare profile data
-    const profileData = {
-      firstName: firstName.trim(),
-      lastName: lastName.trim(),
-      displayName: displayName.trim() || `${firstName.trim()} ${lastName.trim()}`,
-      phoneNumber: phoneNumber.trim(),
-      bio: bio.trim(),
-      // Student fields
-      studentNumber: studentNumber.trim(),
-      course: course.trim(),
-      yearOfStudy: yearOfStudy.trim(),
-      // Staff fields
-      staffId: staffId.trim(),
-      department: department.trim(),
-      position: position.trim(),
-      // Vendor fields
-      businessName: businessName.trim(),
-      businessType: businessType.trim(),
-      businessDescription: businessDescription.trim(),
-      businessAddress: businessAddress.trim(),
-      // Community fields
-      communityType: communityType.trim(),
-    };
 
     try {
-      // ✅ Step 1: Save profile data
+      // ✅ Step 1: Ensure profile exists
+      await ensureProfileExists(userId, email || user?.email || '', userRole);
+
+      // ✅ Step 2: Prepare profile data
+      const profileData = {
+        firstName: firstName.trim(),
+        lastName: lastName.trim(),
+        displayName: displayName.trim() || `${firstName.trim()} ${lastName.trim()}`,
+        phoneNumber: phoneNumber.trim(),
+        bio: bio.trim(),
+        studentNumber: studentNumber.trim(),
+        course: course.trim(),
+        yearOfStudy: yearOfStudy.trim(),
+        staffId: staffId.trim(),
+        department: department.trim(),
+        position: position.trim(),
+        businessName: businessName.trim(),
+        businessType: businessType.trim(),
+        businessDescription: businessDescription.trim(),
+        businessAddress: businessAddress.trim(),
+        businessRegistrationNumber: businessRegistrationNumber.trim(),
+        communityType: communityType.trim(),
+      };
+
+      // ✅ Step 3: Update profile
+      console.log('📝 Updating profile for user:', userId);
       const result = await profileAPI.updateProfile(userId, profileData);
       
       if (result.success) {
-        // ✅ Step 2: Mark profile as completed
+        // ✅ Step 4: Mark profile as completed
         const { error: flagError } = await supabase
           .from('profiles')
           .update({ 
@@ -196,15 +243,22 @@ export default function CompleteProfileScreen({ route, navigation }: any) {
           console.log('⚠️ Failed to set profile_completed flag:', flagError);
         }
 
-        // ✅ Step 3: Show success alert
+        // ✅ Step 5: Force sign out of any Supabase session, then go to Login
+        // This guarantees the user lands on Login regardless of whether
+        // Supabase auto-created a session during signUp (e.g. if email
+        // confirmation is ever disabled in the Supabase project settings).
+        // Without this, an app-level auth listener could route straight
+        // into MainNavigator before this reset takes effect.
+        await supabase.auth.signOut();
+
         Alert.alert(
-          'Profile Complete!',
+          'Profile Complete! 🎉',
           'Your profile has been set up successfully. Please sign in to continue.',
           [
             {
               text: 'Sign In',
               onPress: () => {
-                // ✅ Step 4: Navigate to Login screen
+                // Navigate to Login screen (in AuthNavigator)
                 navigation.reset({
                   index: 0,
                   routes: [{ name: 'Login' }],
@@ -214,9 +268,9 @@ export default function CompleteProfileScreen({ route, navigation }: any) {
           ]
         );
       }
-    } catch (error) {
-      Alert.alert('Error', 'Failed to save profile. Please try again.');
-      console.error('Profile update error:', error);
+    } catch (error: any) {
+      console.error('❌ Profile update error:', error);
+      Alert.alert('Error', error.message || 'Failed to save profile. Please try again.');
     } finally {
       setIsLoading(false);
     }

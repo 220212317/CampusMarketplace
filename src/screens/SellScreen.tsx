@@ -8,12 +8,17 @@ import {
   TouchableOpacity,
   TextInput,
   Alert,
+  Image,
+  ActivityIndicator,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
+import * as ImagePicker from 'expo-image-picker';
 import { useTheme } from '../hooks/useTheme';
-import { productAPI } from '../lib/api';
+import { productAPI, storageAPI } from '../lib/api';
 import { useAuth } from '../hooks/useAuth';
+
+const MAX_PHOTOS = 5;
 
 export default function SellScreen({ navigation }: any) {
   const { colors } = useTheme();
@@ -24,9 +29,88 @@ export default function SellScreen({ navigation }: any) {
   const [category, setCategory] = useState('');
   const [condition, setCondition] = useState('');
   const [description, setDescription] = useState('');
+  const [photos, setPhotos] = useState<{ url: string; path: string }[]>([]);
+  const [isUploadingPhoto, setIsUploadingPhoto] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const categories = ['Books', 'Electronics', 'Food', 'Clothing', 'Other'];
   const conditions = ['Brand New', 'Like New', 'Good', 'Fair'];
+
+  const requestPermissions = async () => {
+    const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (status !== 'granted') {
+      Alert.alert('Permission Required', 'Please grant photo library permissions to add photos.');
+      return false;
+    }
+    return true;
+  };
+
+  const handleAddPhoto = async () => {
+    if (!user?.id) {
+      Alert.alert('Error', 'You must be signed in to add photos');
+      return;
+    }
+
+    if (photos.length >= MAX_PHOTOS) {
+      Alert.alert('Limit Reached', `You can only add up to ${MAX_PHOTOS} photos.`);
+      return;
+    }
+
+    const hasPermission = await requestPermissions();
+    if (!hasPermission) return;
+
+    try {
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        allowsEditing: true,
+        aspect: [4, 3],
+        quality: 0.8,
+      });
+
+      if (result.canceled || !result.assets || result.assets.length === 0) {
+        return;
+      }
+
+      const asset = result.assets[0];
+      const fileExtension = (asset.fileName || asset.uri).split('.').pop() || 'jpg';
+      const filePath = `products/${user.id}/${Date.now()}.${fileExtension}`;
+      const file = {
+        uri: asset.uri,
+        type: asset.mimeType || 'image/jpeg',
+        name: asset.fileName || `product_${Date.now()}.${fileExtension}`,
+      };
+
+      setIsUploadingPhoto(true);
+      const uploadResult = await storageAPI.uploadImage(filePath, file);
+
+      setPhotos((prev) => [...prev, { url: uploadResult.url, path: filePath }]);
+    } catch (error: any) {
+      console.error('❌ Photo upload error:', error);
+      Alert.alert('Error', error.message || 'Failed to upload photo. Please try again.');
+    } finally {
+      setIsUploadingPhoto(false);
+    }
+  };
+
+  const handleRemovePhoto = (index: number) => {
+    const photo = photos[index];
+    Alert.alert('Remove Photo', 'Remove this photo from the listing?', [
+      { text: 'Cancel', style: 'cancel' },
+      {
+        text: 'Remove',
+        style: 'destructive',
+        onPress: async () => {
+          setPhotos((prev) => prev.filter((_, i) => i !== index));
+          try {
+            await storageAPI.deleteImage(photo.path);
+          } catch (error) {
+            // Non-fatal — the photo is already removed from the listing locally.
+            console.error('❌ Failed to delete photo from storage:', error);
+          }
+        },
+      },
+    ]);
+  };
 
   const handleSubmit = async () => {
     if (!title.trim() || !price.trim() || !category || !condition || !description.trim()) {
@@ -34,6 +118,12 @@ export default function SellScreen({ navigation }: any) {
       return;
     }
 
+    if (photos.length === 0) {
+      Alert.alert('Error', 'Please add at least one photo of your item');
+      return;
+    }
+
+    setIsSubmitting(true);
     try {
       const productData = {
         title: title.trim(),
@@ -47,7 +137,7 @@ export default function SellScreen({ navigation }: any) {
           name: `${user?.firstName || ''} ${user?.lastName || ''}`.trim() || 'Anonymous',
           email: user?.email || '',
         },
-        images: ['https://via.placeholder.com/400'],
+        images: photos.map((p) => p.url),
         stock: parseInt(quantity) || 1,
       };
 
@@ -57,6 +147,8 @@ export default function SellScreen({ navigation }: any) {
     } catch (error) {
       Alert.alert('Error', 'Failed to list item');
       console.error(error);
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -175,19 +267,55 @@ export default function SellScreen({ navigation }: any) {
             textAlignVertical="top"
           />
 
-          <Text style={[styles.label, { color: colors.text }]}>LISTING PHOTOS (0/5)</Text>
-          <TouchableOpacity style={[styles.imageUpload, { backgroundColor: colors.card }]}>
-            <Ionicons name="camera" size={32} color={colors.textLight} />
-            <Text style={[styles.imageUploadText, { color: colors.textLight }]}>
-              Tap to add photos
-            </Text>
-          </TouchableOpacity>
+          <Text style={[styles.label, { color: colors.text }]}>
+            LISTING PHOTOS ({photos.length}/{MAX_PHOTOS}) *
+          </Text>
+          <View style={styles.photoGrid}>
+            {photos.map((photo, index) => (
+              <View key={photo.path} style={styles.photoThumbWrapper}>
+                <Image source={{ uri: photo.url }} style={styles.photoThumb} />
+                <TouchableOpacity
+                  style={styles.photoRemoveBadge}
+                  onPress={() => handleRemovePhoto(index)}
+                >
+                  <Ionicons name="close" size={14} color="#ffffff" />
+                </TouchableOpacity>
+              </View>
+            ))}
+
+            {photos.length < MAX_PHOTOS && (
+              <TouchableOpacity
+                style={[styles.imageUpload, { backgroundColor: colors.card }]}
+                onPress={handleAddPhoto}
+                disabled={isUploadingPhoto}
+              >
+                {isUploadingPhoto ? (
+                  <ActivityIndicator color={colors.primary} />
+                ) : (
+                  <>
+                    <Ionicons name="camera" size={28} color={colors.textLight} />
+                    <Text style={[styles.imageUploadText, { color: colors.textLight }]}>
+                      Add photo
+                    </Text>
+                  </>
+                )}
+              </TouchableOpacity>
+            )}
+          </View>
 
           <TouchableOpacity
-            style={[styles.submitButton, { backgroundColor: colors.primary }]}
+            style={[
+              styles.submitButton,
+              { backgroundColor: colors.primary, opacity: isSubmitting ? 0.7 : 1 },
+            ]}
             onPress={handleSubmit}
+            disabled={isSubmitting}
           >
-            <Text style={styles.submitButtonText}>List Item For Sale</Text>
+            {isSubmitting ? (
+              <ActivityIndicator color="#ffffff" />
+            ) : (
+              <Text style={styles.submitButtonText}>List Item For Sale</Text>
+            )}
           </TouchableOpacity>
         </View>
       </ScrollView>
@@ -264,6 +392,7 @@ const styles = StyleSheet.create({
     fontWeight: '500',
   },
   imageUpload: {
+    width: 100,
     height: 100,
     borderRadius: 12,
     borderWidth: 1,
@@ -273,8 +402,38 @@ const styles = StyleSheet.create({
     borderStyle: 'dashed',
   },
   imageUploadText: {
-    fontSize: 14,
-    marginTop: 8,
+    fontSize: 12,
+    marginTop: 6,
+    textAlign: 'center',
+  },
+  photoGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 10,
+    marginBottom: 4,
+  },
+  photoThumbWrapper: {
+    position: 'relative',
+    width: 100,
+    height: 100,
+  },
+  photoThumb: {
+    width: 100,
+    height: 100,
+    borderRadius: 12,
+  },
+  photoRemoveBadge: {
+    position: 'absolute',
+    top: -6,
+    right: -6,
+    width: 22,
+    height: 22,
+    borderRadius: 11,
+    backgroundColor: '#F44336',
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 2,
+    borderColor: '#ffffff',
   },
   submitButton: {
     paddingVertical: 14,
