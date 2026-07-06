@@ -445,7 +445,8 @@ export const productAPI = {
             id,
             first_name,
             last_name,
-            email
+            email,
+            profile_photo_url
           )
         `)
         .eq('id', id)
@@ -470,6 +471,9 @@ export const productAPI = {
           id: data.seller?.id,
           name: `${data.seller?.first_name || ''} ${data.seller?.last_name || ''}`.trim(),
           email: data.seller?.email,
+          first_name: data.seller?.first_name,      // added the seller information to the product object to be used in the chat feature(name, last_name, profile_photo_url)
+          last_name: data.seller?.last_name,
+          profile_photo_url: data.seller?.profile_photo_url,
         },
         images: data.images || [],
         rating: data.rating || 0,
@@ -1421,9 +1425,9 @@ export const chatAPI = {
         .eq('product_id', productId)
         .eq('buyer_id', buyerId)
         .eq('seller_id', sellerId)
-        .single();
+        .maybeSingle();     //changed the .Single() to .maybeSingle() to avoid error if no conversation exists
       
-      if (findError && findError.code !== 'PGRST116') {
+      if (findError) {      //made a check for findError to throw error if any issue occurs while fetching existing conversation. b
         throw new Error(findError.message);
       }
       

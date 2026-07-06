@@ -42,6 +42,9 @@ export interface Product {
     id: string;
     name: string;
     email: string;
+    first_name?: string; // added the seller information to the product object to be used in the chat feature(name, last_name, profile_photo_url)
+    last_name?: string;
+    profile_photo_url?: string;
   };
   images: string[];
   rating: number;
