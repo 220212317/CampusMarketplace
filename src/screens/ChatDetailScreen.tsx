@@ -123,9 +123,18 @@ export default function ChatDetailScreen({ route, navigation }: any) {
           <Text style={[styles.messageText, { color: isOwn ? '#ffffff' : colors.text }]}>
             {item.content}
           </Text>
-          <Text style={[styles.messageTime, { color: isOwn ? 'rgba(255,255,255,0.7)' : colors.textLight }]}>
-            {formatTime(item.created_at)}
-          </Text>
+          <View style={styles.messageFooter}>
+            <Text style={[styles.messageTime, { color: isOwn ? 'rgba(255,255,255,0.7)' : colors.textLight }]}>
+              {formatTime(item.created_at)}
+            </Text>
+            {isOwn && (
+              <Ionicons
+                name={item.is_read ? 'checkmark-done' : 'checkmark'}
+                size={12}
+                color={item.is_read ? '#8fc9ff' : 'rgba(255,255,255,0.5)'}
+              />
+            )}
+          </View>
         </View>
       </View>
     );
@@ -303,11 +312,17 @@ const styles = StyleSheet.create({
     fontSize: 16,
     lineHeight: 22,
   },
+  messageFooter: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'flex-end',
+    marginTop: 4,
+    gap: 4,
+  },
   messageTime: {
     fontSize: 10,
-    marginTop: 4,
-    alignSelf: 'flex-end',
   },
+
   inputContainer: {
     flexDirection: 'row',
     alignItems: 'flex-end',
