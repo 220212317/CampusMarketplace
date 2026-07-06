@@ -83,8 +83,9 @@ export default function ProductDetailScreen({ route, navigation }: any) {
         otherUser: product?.seller,
         product: product,
       });
-    } catch (error) {
-      Alert.alert('Error', 'Failed to start chat. Please try again.');
+    } catch (error: any) {
+      console.error('Error starting chat:', error);  // For debugging
+      Alert.alert('Error', `Failed to start chat: ${error?.message || 'Unknown error'}`);
     }
   };
 
