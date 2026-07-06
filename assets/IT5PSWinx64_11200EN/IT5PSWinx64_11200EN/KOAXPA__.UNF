@@ -1,0 +1,116 @@
+;
+; KONICA MINOLTA C759SeriesPS Driver UNF-File for Win x64
+;
+; Copyright (C) 2003 KONICA MINOLTA, INC.
+
+[Version]
+Signature="$Windows NT$"
+Provider=%KM%
+ClassGUID={4D36E979-E325-11CE-BFC1-08002BE10318}
+Class=Printer
+CatalogFile=KOAXPA__.CAT
+DriverVer=12/01/2018,11.2.0.0
+
+[DriverInfo]
+DriverName1=KONICA MINOLTA C658SeriesPS
+DriverName2=KONICA MINOLTA C368SeriesPS
+DriverName3=KONICA MINOLTA C287SeriesPS
+DriverName5=KONICA MINOLTA C3851SeriesPS
+DriverName6=KONICA MINOLTA C759SeriesPS
+DriverCode=0009
+
+[Uninstall.DriverName1]
+DelReg=Environment_Reg.DriverName1
+DelFiles=PPD1,G_FILES,PRINT_PROCESSOR,PRINT_MONITOR
+
+[Uninstall.DriverName2]
+DelReg=Environment_Reg.DriverName2
+DelFiles=PPD2,G_FILES,PRINT_PROCESSOR,PRINT_MONITOR
+
+[Uninstall.DriverName3]
+DelReg=Environment_Reg.DriverName3
+DelFiles=PPD3,G_FILES,PRINT_PROCESSOR,PRINT_MONITOR
+
+[Uninstall.DriverName5]
+DelReg=Environment_Reg.DriverName5
+DelFiles=PPD5,G_FILES,PRINT_PROCESSOR,PRINT_MONITOR
+
+[Uninstall.DriverName6]
+DelReg=Environment_Reg.DriverName6
+DelFiles=PPD6,G_FILES,PRINT_PROCESSOR,PRINT_MONITOR
+
+[Environment_Reg.DriverName1]
+HKLM,"System\CurrentControlSet\Control\Print\Printers","StartOnBoot"
+HKCU,"SoftWare\KONICA MINOLTA\KONICA MINOLTA C658SeriesPS"
+
+[Environment_Reg.DriverName2]
+HKLM,"System\CurrentControlSet\Control\Print\Printers","StartOnBoot"
+HKCU,"SoftWare\KONICA MINOLTA\KONICA MINOLTA C368SeriesPS"
+
+[Environment_Reg.DriverName3]
+HKLM,"System\CurrentControlSet\Control\Print\Printers","StartOnBoot"
+HKCU,"SoftWare\KONICA MINOLTA\KONICA MINOLTA C287SeriesPS"
+
+[Environment_Reg.DriverName5]
+HKLM,"System\CurrentControlSet\Control\Print\Printers","StartOnBoot"
+HKCU,"SoftWare\KONICA MINOLTA\KONICA MINOLTA C3851SeriesPS"
+
+[Environment_Reg.DriverName6]
+HKLM,"System\CurrentControlSet\Control\Print\Printers","StartOnBoot"
+HKCU,"SoftWare\KONICA MINOLTA\KONICA MINOLTA C759SeriesPS"
+
+[PPD1]
+KOAXPA_A.PPD
+
+[PPD2]
+KOAXPA_B.PPD
+
+[PPD3]
+KOAXPA_C.PPD
+
+[PPD5]
+KOAXPA_E.PPD
+
+[PPD6]
+KOAXPA_F.PPD
+
+[G_FILES]
+KOAXPA_B.DLL,,,1
+KOAXPA_C.DLL,,,1
+KOAXPA_D.DLL,,,1
+KOAXPA_E.DLL,,,1
+KOAXPA_G.DLL,,,1
+KOAXPA_M.DLL,,,1
+KOAXPA_N.DLL,,,1
+KOAXPA_O.DLL,,,1
+KOAXPA_P.DLL,,,1
+KOAXPA_R.DLL,,,1
+KOAXPA_S.DLL,,,1
+KOAXPA_U.DLL,,,1
+KOAXPA_W.DLL,,,1
+KOAXPA_C.KPD
+KOAXPA_D.KPD
+KOAXPA_M.KPD
+KOAXPA__.KPD
+KOAXPA__.INI
+KOAXPA__.CHM,,,1
+KOAXPA__.UNF
+KOAXPA_A.KMP
+KOAXPA_B.KMP
+KOAXPA_C.KMP
+KOAXPA_D.KMP
+
+[PRINT_PROCESSOR]
+KOAXPA_P.DLL
+
+[PRINT_MONITOR]
+KOAXPA_L.DLL,,,1
+
+[DestinationDirs]
+DefaultDestDir=66000
+PRINT_PROCESSOR=66001
+PRINT_MONITOR=66002
+
+[Strings]
+KM="KONICA MINOLTA"
+DiskName="KONICA MINOLTA C759Series Driver Disk"

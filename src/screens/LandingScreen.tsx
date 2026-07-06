@@ -126,7 +126,7 @@ export default function LandingScreen({ navigation }: any) {
               <Text style={styles.logoBoxText}>CM</Text>
             </View>
             <View>
-              <Text style={styles.brandLine1}>COMMUNITY</Text>
+              <Text style={styles.brandLine1}>CAMPUS</Text>
               <Text style={styles.brandLine2}>MARKETPLACE</Text>
             </View>
           </View>
@@ -162,9 +162,9 @@ export default function LandingScreen({ navigation }: any) {
           </Text>
 
           <Text style={styles.tagline}>
-            The ultimate platform for staff and students to buy textbooks,
+            The ultimate platform for staff, students, vendors, and commmunity members to buy textbooks,
             resell electronics, find lost items, order delicious food, and
-            announce university services safely.
+            announce university or general services safely.
           </Text>
         </Animated.View>
 
