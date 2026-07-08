@@ -87,8 +87,6 @@ export default function PostScreen({ navigation }: any) {
     setSubmitting(true);
 
     try {
-      // Upload any attached images first, sequentially, so we can show a
-      // single "Posting..." state rather than juggling per-image progress.
       const uploadedUrls: string[] = [];
       for (let i = 0; i < images.length; i++) {
         const image = images[i];

@@ -123,6 +123,7 @@ export interface ThemeContextType {
     xl: number;
     xxl: number;
   };
+  
   typography: {
     h1: { fontSize: number; fontWeight: string };
     h2: { fontSize: number; fontWeight: string };
@@ -131,6 +132,7 @@ export interface ThemeContextType {
     small: { fontSize: number; fontWeight: string };
     caption: { fontSize: number; fontWeight: string };
   };
+
   borderRadius: {
     pill: number;
     card: number;
