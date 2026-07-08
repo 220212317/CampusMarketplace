@@ -8,6 +8,7 @@ import { useTheme } from '../hooks/useTheme';
 // Import Screens
 import HomeScreen from '../screens/HomeScreen';
 import BrowseScreen from '../screens/BrowseScreen';
+import BulletinScreen from '../screens/BulletinScreen';
 import PostScreen from '../screens/PostScreen';
 import SellScreen from '../screens/SellScreen';
 import CartScreen from '../screens/CartScreen';
@@ -62,7 +63,7 @@ function MainTabs() {
     >
       <Tab.Screen name="Home" component={HomeScreen} />
       <Tab.Screen name="Browse" component={BrowseScreen} />
-      <Tab.Screen name="Post" component={PostScreen} />
+      <Tab.Screen name="Post" component={BulletinScreen} />
       <Tab.Screen name="Sell" component={SellScreen} />
       <Tab.Screen name="Cart" component={CartScreen} />
       <Tab.Screen name="Profile" component={ProfileScreen} />
@@ -79,6 +80,7 @@ export default function MainNavigator() {
       }}
     >
       <Stack.Screen name="MainTabs" component={MainTabs} />
+      <Stack.Screen name="CreatePost" component={PostScreen} />
       <Stack.Screen name="ProductDetail" component={ProductDetailScreen} />
       <Stack.Screen name="AccountInfo" component={AccountInfoScreen} />
       <Stack.Screen name="ChangePassword" component={ChangePasswordScreen} />
