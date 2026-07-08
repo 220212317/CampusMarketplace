@@ -4,11 +4,7 @@ import { User, Product, Post, Order, PaymentMethod, PostType } from '../types';
 import * as FileSystem from 'expo-file-system/legacy';
 import { decode as decodeBase64 } from 'base64-arraybuffer';
 
-// Reads a local file URI (from expo-image-picker / camera) and returns
-// real binary data. Passing the { uri, type, name } object directly to
-// supabase.storage.upload() does NOT work in React Native — it gets
-// serialized incorrectly and results in a corrupted, unreadable file
-// on the server (symptom: "unknown image format" when trying to display it).
+
 const fileToArrayBuffer = async (fileUri: string) => {
   const base64 = await FileSystem.readAsStringAsync(fileUri, {
     encoding: FileSystem.EncodingType.Base64,
@@ -681,6 +677,7 @@ export const postAPI = {
         price: item.price,
         schedule: item.schedule,
         venue: item.venue,
+        images: item.images || [],
         postedBy: {
           id: item.posted_by_profile?.id,
           name: `${item.posted_by_profile?.first_name || ''} ${item.posted_by_profile?.last_name || ''}`.trim(),
@@ -756,6 +753,7 @@ export const postAPI = {
             price: postData.price,
             schedule: postData.schedule,
             venue: postData.venue,
+            images: postData.images || [],
             posted_by: postData.postedBy.id,
           },
         ])
@@ -979,6 +977,38 @@ export const storageAPI = {
       return { url: urlData.publicUrl };
     } catch (error: any) {
       console.error('❌ Upload image failed:', error.message);
+      throw error;
+    }
+  },
+
+  // Uploads an image for a bulletin post. Separate bucket from product-images
+  // so post photos (which can include Lost & Found items, event flyers, etc.)
+  // don't mix with marketplace listing photos.
+  uploadPostImage: async (filePath: string, file: any) => {
+    try {
+      console.log('📤 Uploading post image:', filePath);
+      
+      const arrayBuffer = await fileToArrayBuffer(file.uri);
+      
+      const { data, error } = await supabase.storage
+        .from('post-images')
+        .upload(filePath, arrayBuffer, {
+          contentType: file.type || 'image/jpeg',
+        });
+      
+      if (error) {
+        console.error('❌ Upload post image error:', error);
+        throw new Error(error.message);
+      }
+      
+      const { data: urlData } = supabase.storage
+        .from('post-images')
+        .getPublicUrl(filePath);
+      
+      console.log('✅ Post image uploaded:', urlData.publicUrl);
+      return { url: urlData.publicUrl };
+    } catch (error: any) {
+      console.error('❌ Upload post image failed:', error.message);
       throw error;
     }
   },
