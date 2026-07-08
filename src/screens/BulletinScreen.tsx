@@ -5,6 +5,7 @@ import {
   Text,
   StyleSheet,
   FlatList,
+  ScrollView,
   TouchableOpacity,
   RefreshControl,
   ActivityIndicator,
@@ -22,6 +23,16 @@ const TYPE_STYLES: Record<PostType, { icon: keyof typeof Ionicons.glyphMap; bg: 
   Event: { icon: 'calendar-outline', bg: '#E5F0FB', badgeBg: '#D6E9FA' },
   Service: { icon: 'briefcase-outline', bg: '#E3F6EC', badgeBg: '#D2F0E0' },
   'Lost & Found': { icon: 'search-outline', bg: '#FDECEA', badgeBg: '#FBDAD6' },
+};
+
+// Small icon shown inside each filter pill so the row is scannable at a glance,
+// matching the icons already used on the post-type badges.
+const FILTER_ICONS: Record<'All' | PostType, keyof typeof Ionicons.glyphMap> = {
+  All: 'apps-outline',
+  General: 'chatbubble-outline',
+  Event: 'calendar-outline',
+  Service: 'briefcase-outline',
+  'Lost & Found': 'search-outline',
 };
 
 function formatDate(dateString: string) {
@@ -64,26 +75,11 @@ export default function BulletinScreen({ navigation }: any) {
   const filteredPosts =
     activeFilter === 'All' ? posts : posts.filter((p) => p.type === activeFilter);
 
-  const renderFilterPill = (filter: 'All' | PostType) => {
-    const isSelected = activeFilter === filter;
-    return (
-      <TouchableOpacity
-        key={filter}
-        style={[
-          styles.filterPill,
-          {
-            backgroundColor: isSelected ? colors.primary : colors.card,
-            borderColor: isSelected ? colors.primary : colors.border,
-          },
-        ]}
-        onPress={() => setActiveFilter(filter)}
-      >
-        <Text style={[styles.filterText, { color: isSelected ? '#ffffff' : colors.text }]}>
-          {filter}
-        </Text>
-      </TouchableOpacity>
-    );
-  };
+  // Per-type counts so each pill can show how many posts it holds, e.g. "Event (3)".
+  const filterCounts = FILTER_TYPES.reduce<Record<string, number>>((acc, filter) => {
+    acc[filter] = filter === 'All' ? posts.length : posts.filter((p) => p.type === filter).length;
+    return acc;
+  }, {});
 
   const renderPost = ({ item }: { item: Post }) => {
     const typeStyle = TYPE_STYLES[item.type];
@@ -158,14 +154,54 @@ export default function BulletinScreen({ navigation }: any) {
         </Text>
       </View>
 
-      <FlatList
-        data={FILTER_TYPES}
+      {/* ScrollView with negative margin to pull filters up closer to subtitle */}
+      <ScrollView
         horizontal
         showsHorizontalScrollIndicator={false}
-        keyExtractor={(item) => item}
-        renderItem={({ item }) => renderFilterPill(item)}
         contentContainerStyle={styles.filterContainer}
-      />
+        contentInsetAdjustmentBehavior="never"
+        style={styles.filterScrollView}
+      >
+        {FILTER_TYPES.map((filter) => {
+          const isSelected = activeFilter === filter;
+          return (
+            <TouchableOpacity
+              key={filter}
+              activeOpacity={0.8}
+              style={[
+                styles.filterPill,
+                {
+                  backgroundColor: isSelected ? colors.primary : colors.card,
+                  borderColor: isSelected ? colors.primary : colors.border,
+                },
+                isSelected && styles.filterPillActiveShadow,
+              ]}
+              onPress={() => setActiveFilter(filter)}
+            >
+              <Ionicons
+                name={FILTER_ICONS[filter]}
+                size={14}
+                color={isSelected ? '#ffffff' : colors.textLight}
+              />
+              <Text style={[styles.filterText, { color: isSelected ? '#ffffff' : colors.text }]}>
+                {filter}
+              </Text>
+              {filterCounts[filter] > 0 && (
+                <View
+                  style={[
+                    styles.countPill,
+                    { backgroundColor: isSelected ? 'rgba(255,255,255,0.25)' : colors.background },
+                  ]}
+                >
+                  <Text style={[styles.countText, { color: isSelected ? '#ffffff' : colors.textLight }]}>
+                    {filterCounts[filter]}
+                  </Text>
+                </View>
+              )}
+            </TouchableOpacity>
+          );
+        })}
+      </ScrollView>
 
       {loading ? (
         <ActivityIndicator style={{ marginTop: 40 }} color={colors.primary} />
@@ -178,7 +214,9 @@ export default function BulletinScreen({ navigation }: any) {
           refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
           ListEmptyComponent={
             <Text style={[styles.emptyText, { color: colors.textLight }]}>
-              No posts yet. Be the first to post!
+              {activeFilter === 'All'
+                ? 'No posts yet. Be the first to post!'
+                : `No ${activeFilter} posts yet.`}
             </Text>
           }
         />
@@ -207,18 +245,53 @@ const styles = StyleSheet.create({
     gap: 4,
   },
   createButtonText: { color: '#ffffff', fontSize: 14, fontWeight: '700' },
-  titleContainer: { paddingHorizontal: 20, paddingTop: 12, paddingBottom: 4 },
+  titleContainer: {
+    paddingHorizontal: 20,
+    paddingTop: 12,
+    paddingBottom: 0,
+  },
   title: { fontSize: 22, fontWeight: '700' },
-  subtitle: { fontSize: 14, marginTop: 4 },
-  filterContainer: { paddingHorizontal: 20, paddingVertical: 16, gap: 8 },
+  subtitle: {
+    fontSize: 14,
+    marginTop: 2,
+    marginBottom: 0,
+  },
+  filterScrollView: {
+    marginTop: -8, 
+  },
+  filterContainer: {
+    paddingHorizontal: 20,
+    paddingTop: 0,
+    paddingBottom: 14,
+    alignItems: 'center',
+  },
   filterPill: {
-    paddingHorizontal: 18,
-    paddingVertical: 8,
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 16,
+    paddingVertical: 9,
     borderRadius: 25,
     borderWidth: 1,
     marginRight: 8,
+    gap: 6,
+  },
+  filterPillActiveShadow: {
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.15,
+    shadowRadius: 4,
+    elevation: 3,
   },
   filterText: { fontSize: 14, fontWeight: '600' },
+  countPill: {
+    minWidth: 18,
+    height: 18,
+    borderRadius: 9,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 5,
+  },
+  countText: { fontSize: 11, fontWeight: '700' },
   listContent: { paddingHorizontal: 20, paddingBottom: 30 },
   postCard: { borderWidth: 1, borderRadius: 16, padding: 16, marginBottom: 16 },
   postHeaderRow: {
