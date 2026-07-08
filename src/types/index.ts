@@ -22,6 +22,9 @@ export interface User {
   communityType?: string;
   profilePhoto?: string;
   isVerified?: boolean;
+  isAdmin?: boolean;
+  isStaff?: boolean;
+  isStudent?: boolean;
   createdAt?: string;
   updatedAt?: string;
 }
@@ -123,7 +126,7 @@ export interface ThemeContextType {
     xl: number;
     xxl: number;
   };
-  
+
   typography: {
     h1: { fontSize: number; fontWeight: string };
     h2: { fontSize: number; fontWeight: string };
