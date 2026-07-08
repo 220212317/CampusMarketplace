@@ -7,14 +7,25 @@ import {
   ScrollView,
   TouchableOpacity,
   TextInput,
+  Image,
   Alert,
+  ActivityIndicator,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
+import * as ImagePicker from 'expo-image-picker';
 import { useTheme } from '../hooks/useTheme';
-import { postAPI } from '../lib/api';
+import { postAPI, storageAPI } from '../lib/api';
 import { useAuth } from '../hooks/useAuth';
 import { PostType } from '../types';
+
+const MAX_IMAGES = 5;
+
+interface PickedImage {
+  uri: string;
+  type?: string;
+  name?: string;
+}
 
 export default function PostScreen({ navigation }: any) {
   const { colors } = useTheme();
@@ -25,8 +36,47 @@ export default function PostScreen({ navigation }: any) {
   const [price, setPrice] = useState('');
   const [schedule, setSchedule] = useState('');
   const [venue, setVenue] = useState('');
+  const [images, setImages] = useState<PickedImage[]>([]);
+  const [submitting, setSubmitting] = useState(false);
 
   const postTypes: PostType[] = ['General', 'Event', 'Service', 'Lost & Found'];
+
+  const pickImages = async () => {
+    if (images.length >= MAX_IMAGES) {
+      Alert.alert('Limit reached', `You can attach up to ${MAX_IMAGES} photos per post.`);
+      return;
+    }
+
+    const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (status !== 'granted') {
+      Alert.alert(
+        'Permission needed',
+        'Please allow photo library access to attach images to your post.'
+      );
+      return;
+    }
+
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      allowsMultipleSelection: true,
+      selectionLimit: MAX_IMAGES - images.length,
+      quality: 0.7,
+    });
+
+    if (!result.canceled && result.assets?.length) {
+      const newImages: PickedImage[] = result.assets.map((asset) => ({
+        uri: asset.uri,
+        type: asset.mimeType || 'image/jpeg',
+        name: asset.fileName || `post_${Date.now()}.jpg`,
+      }));
+
+      setImages((prev) => [...prev, ...newImages].slice(0, MAX_IMAGES));
+    }
+  };
+
+  const removeImage = (index: number) => {
+    setImages((prev) => prev.filter((_, i) => i !== index));
+  };
 
   const handleSubmit = async () => {
     if (!title.trim() || !description.trim()) {
@@ -34,7 +84,20 @@ export default function PostScreen({ navigation }: any) {
       return;
     }
 
+    setSubmitting(true);
+
     try {
+      // Upload any attached images first, sequentially, so we can show a
+      // single "Posting..." state rather than juggling per-image progress.
+      const uploadedUrls: string[] = [];
+      for (let i = 0; i < images.length; i++) {
+        const image = images[i];
+        const extension = image.uri.split('.').pop() || 'jpg';
+        const filePath = `posts/${user?.id || 'anonymous'}/${Date.now()}_${i}.${extension}`;
+        const { url } = await storageAPI.uploadPostImage(filePath, image);
+        uploadedUrls.push(url);
+      }
+
       const postData = {
         type: postType,
         title: title.trim(),
@@ -43,6 +106,7 @@ export default function PostScreen({ navigation }: any) {
         price: price || undefined,
         schedule: schedule || undefined,
         venue: venue || undefined,
+        images: uploadedUrls,
         postedBy: {
           id: user?.id || '',
           name: `${user?.firstName || ''} ${user?.lastName || ''}`.trim() || 'Anonymous',
@@ -56,6 +120,8 @@ export default function PostScreen({ navigation }: any) {
     } catch (error) {
       Alert.alert('Error', 'Failed to create post');
       console.error(error);
+    } finally {
+      setSubmitting(false);
     }
   };
 
@@ -158,11 +224,47 @@ export default function PostScreen({ navigation }: any) {
             </View>
           )}
 
+          <Text style={[styles.label, { color: colors.text }]}>
+            Photos ({images.length}/{MAX_IMAGES})
+          </Text>
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.imageRow}>
+            {images.map((image, index) => (
+              <View key={image.uri + index} style={styles.imageThumbWrapper}>
+                <Image source={{ uri: image.uri }} style={styles.imageThumb} />
+                <TouchableOpacity
+                  style={styles.removeImageButton}
+                  onPress={() => removeImage(index)}
+                  hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                >
+                  <Ionicons name="close-circle" size={22} color={colors.primary} />
+                </TouchableOpacity>
+              </View>
+            ))}
+
+            {images.length < MAX_IMAGES && (
+              <TouchableOpacity
+                style={[styles.addImageButton, { borderColor: colors.border, backgroundColor: '#fdf6f0' }]}
+                onPress={pickImages}
+              >
+                <Ionicons name="camera-outline" size={26} color={colors.textLight} />
+                <Text style={[styles.addImageText, { color: colors.textLight }]}>Add</Text>
+              </TouchableOpacity>
+            )}
+          </ScrollView>
+
           <TouchableOpacity
-            style={[styles.submitButton, { backgroundColor: colors.primary }]}
+            style={[
+              styles.submitButton,
+              { backgroundColor: colors.primary, opacity: submitting ? 0.7 : 1 },
+            ]}
             onPress={handleSubmit}
+            disabled={submitting}
           >
-            <Text style={styles.submitButtonText}>Post now</Text>
+            {submitting ? (
+              <ActivityIndicator color="#ffffff" />
+            ) : (
+              <Text style={styles.submitButtonText}>Post now</Text>
+            )}
           </TouchableOpacity>
         </View>
       </ScrollView>
@@ -225,6 +327,39 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     fontSize: 16,
     minHeight: 140,
+  },
+  imageRow: {
+    flexDirection: 'row',
+  },
+  imageThumbWrapper: {
+    marginRight: 10,
+    position: 'relative',
+  },
+  imageThumb: {
+    width: 80,
+    height: 80,
+    borderRadius: 12,
+  },
+  removeImageButton: {
+    position: 'absolute',
+    top: -6,
+    right: -6,
+    backgroundColor: '#ffffff',
+    borderRadius: 11,
+  },
+  addImageButton: {
+    width: 80,
+    height: 80,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderStyle: 'dashed',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  addImageText: {
+    fontSize: 12,
+    fontWeight: '600',
+    marginTop: 4,
   },
   submitButton: {
     paddingVertical: 14,
