@@ -10,19 +10,15 @@ export interface User {
   phoneNumber?: string;
   campusResidence?: string;
   bio?: string;
-  // Student specific
   course?: string;
   yearOfStudy?: string;
-  // Staff specific
   staffId?: string;
   department?: string;
   position?: string;
-  // Vendor specific
   businessName?: string;
   businessType?: string;
   businessDescription?: string;
   businessAddress?: string;
-  // Community specific
   communityType?: string;
   profilePhoto?: string;
   isVerified?: boolean;
@@ -42,7 +38,7 @@ export interface Product {
     id: string;
     name: string;
     email: string;
-    first_name?: string; // added the seller information to the product object to be used in the chat feature(name, last_name, profile_photo_url)
+    first_name?: string;
     last_name?: string;
     profile_photo_url?: string;
   };
@@ -65,6 +61,7 @@ export interface Post {
   price?: string;
   schedule?: string;
   venue?: string;
+  images?: string[];
   postedBy: {
     id: string;
     name: string;
