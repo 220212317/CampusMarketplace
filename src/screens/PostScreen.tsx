@@ -10,6 +10,7 @@ import {
   Alert,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../hooks/useTheme';
 import { postAPI } from '../lib/api';
 import { useAuth } from '../hooks/useAuth';
@@ -88,18 +89,23 @@ export default function PostScreen({ navigation }: any) {
     <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
       <ScrollView showsVerticalScrollIndicator={false}>
         <View style={styles.header}>
-          <Text style={[styles.title, { color: colors.text }]}>CREATE POST</Text>
+          <Text style={[styles.title, { color: colors.primary }]}>CREATE POST</Text>
+          <TouchableOpacity
+            onPress={() => navigation.goBack()}
+            hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
+          >
+            <Ionicons name="close" size={26} color={colors.text} />
+          </TouchableOpacity>
         </View>
 
         <View style={styles.formContainer}>
-          <Text style={[styles.label, { color: colors.text }]}>Post Type</Text>
           <View style={styles.postTypeContainer}>
             {postTypes.map(renderPostTypeButton)}
           </View>
 
           <Text style={[styles.label, { color: colors.text }]}>Post Headline *</Text>
           <TextInput
-            style={[styles.input, { backgroundColor: colors.card, color: colors.text }]}
+            style={[styles.input, { backgroundColor: '#fdf6f0', color: colors.text }]}
             placeholder="Enter post headline..."
             placeholderTextColor={colors.textLight}
             value={title}
@@ -108,7 +114,7 @@ export default function PostScreen({ navigation }: any) {
 
           <Text style={[styles.label, { color: colors.text }]}>Core Description/Details *</Text>
           <TextInput
-            style={[styles.textArea, { backgroundColor: colors.card, color: colors.text }]}
+            style={[styles.textArea, { backgroundColor: '#fdf6f0', color: colors.text }]}
             placeholder="Enter description..."
             placeholderTextColor={colors.textLight}
             value={description}
@@ -122,7 +128,7 @@ export default function PostScreen({ navigation }: any) {
             <View>
               <Text style={[styles.label, { color: colors.text }]}>Price</Text>
               <TextInput
-                style={[styles.input, { backgroundColor: colors.card, color: colors.text }]}
+                style={[styles.input, { backgroundColor: '#fdf6f0', color: colors.text }]}
                 placeholder="e.g. R50/hr"
                 placeholderTextColor={colors.textLight}
                 value={price}
@@ -135,7 +141,7 @@ export default function PostScreen({ navigation }: any) {
             <View>
               <Text style={[styles.label, { color: colors.text }]}>Schedule</Text>
               <TextInput
-                style={[styles.input, { backgroundColor: colors.card, color: colors.text }]}
+                style={[styles.input, { backgroundColor: '#fdf6f0', color: colors.text }]}
                 placeholder="e.g. 25-06-2026 @ 12:00-16:30"
                 placeholderTextColor={colors.textLight}
                 value={schedule}
@@ -143,7 +149,7 @@ export default function PostScreen({ navigation }: any) {
               />
               <Text style={[styles.label, { color: colors.text }]}>Venue</Text>
               <TextInput
-                style={[styles.input, { backgroundColor: colors.card, color: colors.text }]}
+                style={[styles.input, { backgroundColor: '#fdf6f0', color: colors.text }]}
                 placeholder="e.g. CPUT Bellville Campus"
                 placeholderTextColor={colors.textLight}
                 value={venue}
@@ -169,12 +175,15 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   header: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
     paddingHorizontal: 20,
     paddingTop: 10,
     paddingBottom: 16,
   },
   title: {
-    fontSize: 24,
+    fontSize: 22,
     fontWeight: '700',
   },
   formContainer: {
@@ -206,20 +215,16 @@ const styles = StyleSheet.create({
   },
   input: {
     paddingHorizontal: 16,
-    paddingVertical: 12,
+    paddingVertical: 14,
     borderRadius: 25,
     fontSize: 16,
-    borderWidth: 1,
-    borderColor: '#E8E8E8',
   },
   textArea: {
     paddingHorizontal: 16,
-    paddingVertical: 12,
-    borderRadius: 25,
+    paddingVertical: 14,
+    borderRadius: 20,
     fontSize: 16,
-    minHeight: 120,
-    borderWidth: 1,
-    borderColor: '#E8E8E8',
+    minHeight: 140,
   },
   submitButton: {
     paddingVertical: 14,

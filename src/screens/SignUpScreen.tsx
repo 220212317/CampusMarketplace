@@ -108,11 +108,11 @@ export default function SignUpScreen({ navigation }: any) {
     }
 
     try {
-      // ✅ Step 1: Call signUp from AuthContext
+      // Call signUp from AuthContext
       const signUpResult = await signUp(email, password, role);
       
       if (signUpResult && signUpResult.success) {
-        // ✅ Step 2: Show success alert
+        // Show success alert
         Alert.alert(
           'Verification Code Sent',
           `We've sent a 6-digit verification code to ${email}. Please check your email and enter the code to verify your account.`,
@@ -120,7 +120,7 @@ export default function SignUpScreen({ navigation }: any) {
             {
               text: 'Enter Code',
               onPress: () => {
-                // ✅ Step 3: Navigate to EmailVerification screen
+                // Navigate to EmailVerification screen
                 navigation.navigate('EmailVerification', { 
                   email: email,
                   role: signUpResult.user.role,
