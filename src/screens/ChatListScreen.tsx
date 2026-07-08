@@ -68,21 +68,13 @@ export default function ChatListScreen({ navigation }: any) {
     return isBuyer ? conversation.seller : conversation.buyer;
   };
 
-  const formatTime = (timestamp: string) => {
+  const formatTimeShort = (timestamp: string) => {
     const date = new Date(timestamp);
-    const now = new Date();
-    const diff = now.getTime() - date.getTime();
-    
-    if (diff < 60000) return 'Just now';
-    if (diff < 3600000) return `${Math.floor(diff / 60000)}m`;
-    if (diff < 86400000) return `${Math.floor(diff / 3600000)}h`;
-    if (diff < 604800000) return `${Math.floor(diff / 86400000)}d`;
-    return date.toLocaleDateString();
+    return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
   };
 
   const renderConversation = ({ item }: { item: any }) => {
     const otherUser = getOtherUser(item);
-    const isBuyer = item.buyer_id === user?.id;
     
     return (
       <TouchableOpacity
@@ -110,30 +102,26 @@ export default function ChatListScreen({ navigation }: any) {
         </View>
         
         <View style={styles.content}>
-          <View style={styles.header}>
-            <Text style={[styles.name, { color: colors.text }]}>
-              {otherUser?.first_name} {otherUser?.last_name}
-            </Text>
-            <Text style={[styles.time, { color: colors.textLight }]}>
-              {formatTime(item.last_message_at)}
-            </Text>
-          </View>
+          <Text style={[styles.name, { color: colors.text }]}>
+            {otherUser?.first_name} {otherUser?.last_name}
+          </Text>
           
           <View style={styles.messageRow}>
+            {item.last_message_sender_id === user?.id && (
+              <Ionicons
+                name={item.last_message_is_read ? 'checkmark-done' : 'checkmark'}
+                size={14}
+                color={item.last_message_is_read ? colors.primary : colors.textLight}
+                style={styles.tick}
+              />
+            )}
             <Text style={[styles.lastMessage, { color: colors.textLight }]} numberOfLines={1}>
               {item.last_message || 'No messages yet'}
             </Text>
-            <View style={styles.badgeContainer}>
-              <Text style={styles.roleBadge}>
-                {isBuyer ? 'Buyer' : 'Seller'}
-              </Text>
-              <Ionicons name="chevron-forward" size={18} color={colors.textLight} />
-            </View>
+            <Text style={[styles.timeShort, { color: colors.textLight }]}>
+              {formatTimeShort(item.last_message_at)}
+            </Text>
           </View>
-          
-          <Text style={[styles.productTitle, { color: colors.textLight }]}>
-            {item.product?.title || 'Product'}
-          </Text>
         </View>
       </TouchableOpacity>
     );
@@ -245,18 +233,17 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
   },
-  header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 4,
-  },
   name: {
     fontSize: 16,
     fontWeight: '600',
+    marginBottom: 4,
   },
-  time: {
+  tick: {
+    marginRight: 3,
+  },
+  timeShort: {
     fontSize: 12,
+    flexShrink: 0,
   },
   messageRow: {
     flexDirection: 'row',
@@ -267,20 +254,6 @@ const styles = StyleSheet.create({
     fontSize: 14,
     flex: 1,
     marginRight: 8,
-  },
-  badgeContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-  },
-  roleBadge: {
-    fontSize: 10,
-    fontWeight: '600',
-    color: '#c75c3e',
-    backgroundColor: '#c75c3e15',
-    paddingHorizontal: 8,
-    paddingVertical: 2,
-    borderRadius: 10,
   },
   productTitle: {
     fontSize: 12,

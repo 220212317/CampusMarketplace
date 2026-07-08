@@ -1501,14 +1501,6 @@ export const chatAPI = {
     try {
       console.log('💬 Getting messages for conversation:', conversationId);
       
-      const { data, error } = await supabase
-        .from('messages')
-        .select('*')
-        .eq('conversation_id', conversationId)
-        .order('created_at', { ascending: true });
-      
-      if (error) throw new Error(error.message);
-      
       const { data: userData } = await supabase.auth.getUser();
       if (userData?.user) {
         await supabase
@@ -1517,6 +1509,14 @@ export const chatAPI = {
           .eq('conversation_id', conversationId)
           .neq('sender_id', userData.user.id);
       }
+      
+      const { data, error } = await supabase
+        .from('messages')
+        .select('*')
+        .eq('conversation_id', conversationId)
+        .order('created_at', { ascending: true });
+      
+      if (error) throw new Error(error.message);
       
       console.log('✅ Messages retrieved:', data?.length);
       return data;
@@ -1549,7 +1549,9 @@ export const chatAPI = {
         .update({ 
           updated_at: new Date().toISOString(),
           last_message: content,
-          last_message_at: new Date().toISOString()
+          last_message_at: new Date().toISOString(),
+          last_message_sender_id: senderId,
+          last_message_is_read: false,
         })
         .eq('id', conversationId);
       
@@ -1570,6 +1572,13 @@ export const chatAPI = {
         .neq('sender_id', userId);
       
       if (error) throw new Error(error.message);
+
+      await supabase
+        .from('conversations')
+        .update({ last_message_is_read: true })
+        .eq('id', conversationId)
+        .not('last_message_sender_id', 'eq', userId);
+      
       console.log('✅ Messages marked as read');
       return { success: true };
     } catch (error: any) {
