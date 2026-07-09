@@ -118,6 +118,16 @@ export default function ChangePasswordScreen({ navigation }: any) {
                 />
               </TouchableOpacity>
             </View>
+            {newPassword.length > 0 && getPasswordErrors(newPassword).length > 0 && (
+              <Text style={[styles.errorText, { color: '#F44336' }]}>
+                Must include uppercase, lowercase, number, special character, and be at least 8 characters
+              </Text>
+            )}
+            {newPassword.length > 0 && getPasswordErrors(newPassword).length === 0 && !commonPasswords.includes(newPassword.toLowerCase()) && (
+              <Text style={[styles.successText, { color: '#4CAF50' }]}>
+                ✓ Password is strong enough
+              </Text>
+            )}
           </View>
 
           <View style={styles.fieldContainer}>
@@ -142,6 +152,16 @@ export default function ChangePasswordScreen({ navigation }: any) {
                 />
               </TouchableOpacity>
             </View>
+            {confirmPassword.length > 0 && newPassword !== confirmPassword && (
+              <Text style={[styles.errorText, { color: '#F44336' }]}>
+                Passwords do not match
+              </Text>
+            )}
+            {confirmPassword.length > 0 && newPassword === confirmPassword && (
+              <Text style={[styles.successText, { color: '#4CAF50' }]}>
+                ✓ Passwords match
+              </Text>
+            )}
           </View>
 
           <TouchableOpacity
@@ -202,6 +222,16 @@ const styles = StyleSheet.create({
   },
   eyeButton: {
     padding: 4,
+  },
+  errorText: {
+    fontSize: 12,
+    marginTop: 4,
+    marginLeft: 4,
+  },
+  successText: {
+    fontSize: 12,
+    marginTop: 4,
+    marginLeft: 4,
   },
   changeButton: {
     paddingVertical: 14,
