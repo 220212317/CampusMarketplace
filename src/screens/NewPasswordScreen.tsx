@@ -27,8 +27,19 @@ export default function NewPasswordScreen({ route, navigation }: any) {
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
 
+  const commonPasswords = ['abcs1234', '12345678', '00000000', '01020304', 'hdyedvshj'];
+
+  const passwordRequirements = [
+    { test: (p: string) => p.length >= 8, label: 'At least 8 characters' },
+    { test: (p: string) => /[A-Z]/.test(p), label: 'One uppercase letter' },
+    { test: (p: string) => /[a-z]/.test(p), label: 'One lowercase letter' },
+    { test: (p: string) => /[0-9]/.test(p), label: 'One number' },
+    { test: (p: string) => /[@$!%*?&#^()_\-+=,.]/.test(p), label: 'One special character' },
+  ];
+
   const validatePassword = (password: string) => {
-    return password.length >= 6;
+    if (commonPasswords.includes(password.toLowerCase())) return false;
+    return passwordRequirements.every(r => r.test(password));
   };
 
   const handleResetPassword = async () => {
@@ -38,7 +49,7 @@ export default function NewPasswordScreen({ route, navigation }: any) {
     }
 
     if (!validatePassword(newPassword)) {
-      Alert.alert('Error', 'Password must be at least 6 characters long');
+      Alert.alert('Error', 'Password must include uppercase, lowercase, number, special character, and be at least 8 characters');
       return;
     }
 
@@ -116,7 +127,7 @@ export default function NewPasswordScreen({ route, navigation }: any) {
                   style={[styles.input, { color: colors.text }]}
                   value={newPassword}
                   onChangeText={setNewPassword}
-                  placeholder="Enter new password (min 6 characters)"
+                  placeholder="Enter new password (min 8 characters)"
                   placeholderTextColor={colors.textLight}
                   secureTextEntry={!showNewPassword}
                 />
@@ -128,12 +139,12 @@ export default function NewPasswordScreen({ route, navigation }: any) {
                   />
                 </TouchableOpacity>
               </View>
-              {newPassword.length > 0 && newPassword.length < 6 && (
+              {newPassword.length > 0 && !validatePassword(newPassword) && (
                 <Text style={[styles.errorText, { color: colors.error }]}>
-                  Password must be at least 6 characters
+                  Must include uppercase, lowercase, number, special character, and be at least 8 characters
                 </Text>
               )}
-              {newPassword.length >= 6 && (
+              {validatePassword(newPassword) && (
                 <Text style={[styles.successText, { color: colors.success }]}>
                   ✓ Password is strong enough
                 </Text>
