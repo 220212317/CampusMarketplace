@@ -1,5 +1,5 @@
 // src/screens/ChatDetailScreen.tsx (Polling version)
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import {
   View,
   Text,
@@ -108,7 +108,45 @@ export default function ChatDetailScreen({ route, navigation }: any) {
     return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
   };
 
-  const renderMessage = ({ item }: { item: any }) => {
+  const formatDateSeparator = (timestamp: string) => {
+    const date = new Date(timestamp);
+    const now = new Date();
+    const todayStr = now.toDateString();
+    const yesterday = new Date(now);
+    yesterday.setDate(yesterday.getDate() - 1);
+    const yesterdayStr = yesterday.toDateString();
+    const dateStr = date.toDateString();
+
+    if (dateStr === todayStr) return 'Today';
+    if (dateStr === yesterdayStr) return 'Yesterday';
+    return date.toLocaleDateString([], { weekday: 'long', month: 'short', day: 'numeric' });
+  };
+
+  const messagesWithSeparators = useMemo(() => {
+    const items: any[] = [];
+    let lastDate = '';
+    for (const msg of messages) {
+      const msgDate = new Date(msg.created_at).toDateString();
+      if (msgDate !== lastDate) {
+        items.push({ type: 'separator', date: msg.created_at });
+        lastDate = msgDate;
+      }
+      items.push({ type: 'message', ...msg });
+    }
+    return items;
+  }, [messages]);
+
+  const renderItem = ({ item }: { item: any }) => {
+    if (item.type === 'separator') {
+      return (
+        <View style={styles.separatorContainer}>
+          <Text style={[styles.separatorText]}>
+            {formatDateSeparator(item.date)}
+          </Text>
+        </View>
+      );
+    }
+
     const isOwn = item.sender_id === user?.id;
     
     return (
@@ -192,9 +230,9 @@ export default function ChatDetailScreen({ route, navigation }: any) {
       {/* Messages */}
       <FlatList
         ref={flatListRef}
-        data={messages}
-        renderItem={renderMessage}
-        keyExtractor={(item) => item.id}
+        data={messagesWithSeparators}
+        renderItem={renderItem}
+        keyExtractor={(item, index) => item.type === 'separator' ? `sep-${item.date}` : item.id}
         contentContainerStyle={styles.messagesList}
         onLayout={() => flatListRef.current?.scrollToEnd({ animated: false })}
         showsVerticalScrollIndicator={false}
@@ -321,6 +359,20 @@ const styles = StyleSheet.create({
   },
   messageTime: {
     fontSize: 10,
+  },
+  separatorContainer: {
+    alignItems: 'center',
+    marginVertical: 16,
+  },
+  separatorText: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: '#8E8E93',
+    backgroundColor: '#E8E8E8',
+    paddingHorizontal: 14,
+    paddingVertical: 4,
+    borderRadius: 10,
+    overflow: 'hidden',
   },
 
   inputContainer: {
