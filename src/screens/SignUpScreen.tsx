@@ -62,8 +62,19 @@ export default function SignUpScreen({ navigation }: any) {
     return emailRegex.test(email);
   };
 
+  const commonPasswords = ['abcs1234', '12345678', '00000000', '01020304', 'hdyedvshj'];
+
+  const passwordRequirements = [
+    { test: (p: string) => p.length >= 8, label: 'At least 8 characters' },
+    { test: (p: string) => /[A-Z]/.test(p), label: 'One uppercase letter' },
+    { test: (p: string) => /[a-z]/.test(p), label: 'One lowercase letter' },
+    { test: (p: string) => /[0-9]/.test(p), label: 'One number' },
+    { test: (p: string) => /[@$!%*?&#^()_\-+=,.]/.test(p), label: 'One special character' },
+  ];
+
   const validatePassword = (password: string) => {
-    return password.length >= 6;
+    if (commonPasswords.includes(password.toLowerCase())) return false;
+    return passwordRequirements.every(r => r.test(password));
   };
 
   const handleSignUp = async () => {
@@ -85,7 +96,7 @@ export default function SignUpScreen({ navigation }: any) {
     }
 
     if (!validatePassword(password)) {
-      Alert.alert('Error', 'Password must be at least 6 characters long');
+      Alert.alert('Error', 'Password must include uppercase, lowercase, number, special character, and be at least 8 characters');
       return;
     }
 
@@ -262,7 +273,7 @@ export default function SignUpScreen({ navigation }: any) {
                   style={[styles.input, { color: colors.text }]}
                   value={password}
                   onChangeText={setPassword}
-                  placeholder="Enter your password (min 6 characters)"
+                  placeholder="Enter your password (min 8 characters)"
                   placeholderTextColor={colors.textLight}
                   secureTextEntry={!showPassword}
                 />
@@ -274,12 +285,12 @@ export default function SignUpScreen({ navigation }: any) {
                   />
                 </TouchableOpacity>
               </View>
-              {password.length > 0 && password.length < 6 && (
+              {password.length > 0 && !validatePassword(password) && (
                 <Text style={[styles.errorText, { color: colors.error }]}>
-                  Password must be at least 6 characters
+                  Must include uppercase, lowercase, number, special character, and be at least 8 characters
                 </Text>
               )}
-              {password.length >= 6 && (
+              {validatePassword(password) && (
                 <Text style={[styles.successText, { color: colors.success }]}>
                   ✓ Password is strong enough
                 </Text>

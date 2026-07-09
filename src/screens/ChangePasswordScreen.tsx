@@ -22,6 +22,18 @@ export default function ChangePasswordScreen({ navigation }: any) {
   const [showNewPassword, setShowNewPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
+  const commonPasswords = ['abcs1234', '12345678', '00000000', '01020304', 'hdyedvshj'];
+
+  const getPasswordErrors = (password: string) => {
+    const errors: string[] = [];
+    if (password.length < 8) errors.push('at least 8 characters');
+    if (!/[A-Z]/.test(password)) errors.push('one uppercase letter');
+    if (!/[a-z]/.test(password)) errors.push('one lowercase letter');
+    if (!/[0-9]/.test(password)) errors.push('one number');
+    if (!/[@$!%*?&#^()_\-+=,.]/.test(password)) errors.push('one special character');
+    return errors;
+  };
+
   const handleChangePassword = () => {
     if (!currentPassword || !newPassword || !confirmPassword) {
       Alert.alert('Error', 'Please fill in all fields');
@@ -33,8 +45,14 @@ export default function ChangePasswordScreen({ navigation }: any) {
       return;
     }
 
-    if (newPassword.length < 6) {
-      Alert.alert('Error', 'Password must be at least 6 characters');
+    const passwordErrors = getPasswordErrors(newPassword);
+    if (passwordErrors.length > 0) {
+      Alert.alert('Error', 'Password must include ' + passwordErrors.join(', '));
+      return;
+    }
+
+    if (commonPasswords.includes(newPassword.toLowerCase())) {
+      Alert.alert('Error', 'That password is too common. Please choose a stronger password.');
       return;
     }
 
