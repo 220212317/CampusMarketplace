@@ -70,7 +70,16 @@ export default function ChatListScreen({ navigation }: any) {
 
   const formatTimeShort = (timestamp: string) => {
     const date = new Date(timestamp);
-    return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    const now = new Date();
+    const todayStr = now.toDateString();
+    const yesterday = new Date(now);
+    yesterday.setDate(yesterday.getDate() - 1);
+    const yesterdayStr = yesterday.toDateString();
+    const dateStr = date.toDateString();
+
+    if (dateStr === todayStr) return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    if (dateStr === yesterdayStr) return 'Yesterday';
+    return date.toLocaleDateString([], { month: 'short', day: 'numeric' });
   };
 
   const renderConversation = ({ item }: { item: any }) => {
