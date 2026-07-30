@@ -1,4 +1,3 @@
-// src/screens/ChatDetailScreen.tsx (Polling version)
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import {
   View,
@@ -48,8 +47,6 @@ export default function ChatDetailScreen({ route, navigation }: any) {
 
       addMessage(newMessage);
 
-      // If the incoming message is from the other person, mark it read
-      // immediately since this screen is currently open and visible.
       if (newMessage.sender_id !== user?.id) {
         chatAPI.markAsRead(conversationId, user?.id || '').catch(() => {});
       }
@@ -91,8 +88,7 @@ export default function ChatDetailScreen({ route, navigation }: any) {
       );
       addMessage(newMessage);
       setInputText('');
-      
-      // Scroll to bottom
+     
       setTimeout(() => {
         flatListRef.current?.scrollToEnd({ animated: true });
       }, 100);

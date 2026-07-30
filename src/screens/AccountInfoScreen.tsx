@@ -1,4 +1,3 @@
-// src/screens/AccountInfoScreen.tsx
 import React, { useState, useEffect } from 'react';
 import {
   View,
@@ -27,11 +26,6 @@ export default function AccountInfoScreen({ navigation }: any) {
   const [isEditing, setIsEditing] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [profilePhoto, setProfilePhoto] = useState<string | null>(null);
-  // Bumped every time we get a fresh photo URL, appended as a cache-busting
-  // query param. This matters because the Supabase CDN can cache a 404
-  // response for a path that didn't exist yet (e.g. before the storage
-  // bucket was created) â€” without this, the same URL string can keep
-  // resolving to that cached 404 even after the file genuinely exists.
   const [photoVersion, setPhotoVersion] = useState(Date.now());
   const [showPhotoOptions, setShowPhotoOptions] = useState(false);
   const [formData, setFormData] = useState({

@@ -1,4 +1,3 @@
-// src/screens/EmailVerificationScreen.tsx
 import React, { useState, useRef, useEffect } from 'react';
 import {
   View,
@@ -76,7 +75,7 @@ export default function EmailVerificationScreen({ route, navigation }: any) {
 
     setIsLoading(true);
     try {
-      // ✅ Step 4: Verify OTP with Supabase
+      
       const { data, error } = await supabase.auth.verifyOtp({
         email: email,
         token: otpCode,
@@ -88,13 +87,13 @@ export default function EmailVerificationScreen({ route, navigation }: any) {
       }
 
       if (data) {
-        // ✅ Step 5: Mark user as verified in profiles
+        
         await supabase
           .from('profiles')
           .update({ is_verified: true })
           .eq('email', email);
 
-        // ✅ Step 6: Show success alert
+        
         Alert.alert(
           'Email Verified!',
           'Your email has been successfully verified.',
@@ -102,7 +101,7 @@ export default function EmailVerificationScreen({ route, navigation }: any) {
             {
               text: 'Complete Profile',
               onPress: () => {
-                // ✅ Step 7: Navigate to CompleteProfile
+                
                 navigation.replace('CompleteProfile', { 
                   email: email,
                   role: role,

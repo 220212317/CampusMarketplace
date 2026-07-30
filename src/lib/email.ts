@@ -13,7 +13,7 @@ export const sendReceiptEmail = async (receiptData: {
   try {
     console.log('📧 Sending receipt email to:', receiptData.email);
     
-    // Format items for email
+  
     const itemsHtml = receiptData.items.map((item: any) => `
       <tr>
         <td style="padding: 8px; border-bottom: 1px solid #eee;">${item.title || item.name}</td>
@@ -117,8 +117,7 @@ export const sendReceiptEmail = async (receiptData: {
 </html>
     `;
 
-    // ✅ ACTUALLY SEND THE EMAIL via Resend API
-    // Get API key from environment
+   
     const RESEND_API_KEY = process.env.RESEND_API_KEY;
     
     if (!RESEND_API_KEY) {
@@ -154,7 +153,7 @@ export const sendReceiptEmail = async (receiptData: {
 
     console.log('✅ Receipt email sent via Resend. ID:', result.id);
 
-    // Mark receipt as sent in database
+    
     const { error: updateError } = await supabase
       .from('receipts')
       .update({ email_sent: true })

@@ -1,4 +1,3 @@
-// src/lib/supabase.ts
 import 'react-native-url-polyfill/auto';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { createClient } from '@supabase/supabase-js';
@@ -18,7 +17,7 @@ export const supabase = createClient(cleanUrl, supabaseAnonKey, {
   },
 });
 
-// Auth state change listener
+
 supabase.auth.onAuthStateChange((event, session) => {
   console.log('🔐 Auth state changed:', event, session?.user?.email);
   

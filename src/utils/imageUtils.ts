@@ -1,4 +1,3 @@
-// src/utils/imageUtils.ts
 import { Image } from 'react-native';
 
 export const validateImageUrl = (url: string): Promise<boolean> => {

@@ -1,11 +1,9 @@
-// src/navigation/MainNavigator.tsx
 import React from 'react';
 import { createStackNavigator } from '@react-navigation/stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../hooks/useTheme';
 
-// Import Screens
 import HomeScreen from '../screens/HomeScreen';
 import BrowseScreen from '../screens/BrowseScreen';
 import BulletinScreen from '../screens/BulletinScreen';

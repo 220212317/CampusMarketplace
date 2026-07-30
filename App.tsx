@@ -22,7 +22,7 @@ import { supabase } from './src/lib/supabase';
 import { Linking } from 'react-native';
 import { useTheme } from './src/hooks/useTheme';
 
-// Define the navigation param list types
+
 type RootParamList = {
   Auth: undefined;
   Main: undefined;
@@ -40,7 +40,7 @@ type RootParamList = {
   Checkout: { total: number; product?: any; isSingleItem?: boolean };
 };
 
-// Deep linking configuration
+
 const linking: LinkingOptions<RootParamList> = {
   prefixes: ['campusmarketplace://', 'https://campusmarketplace.com'],
   config: {
@@ -68,30 +68,30 @@ const linking: LinkingOptions<RootParamList> = {
     },
   },
   async getInitialURL() {
-    // Check if app was opened from a deep link
+    
     const url = await Linking.getInitialURL();
     if (url) return url;
     
-    // Check if there's a pending deep link from Supabase
+    
     const { data } = await supabase.auth.getSession();
     if (data?.session) {
-      // Handle the session if needed
+    
       return null;
     }
     return null;
   },
   subscribe(listener: (url: string) => void) {
-    // Listen for deep links
+    
     const onReceiveURL = ({ url }: { url: string }) => {
-      // Handle Supabase auth callback
+     
       if (url.includes('auth/callback')) {
-        // Parse the URL and handle auth callback
+       
         const params = new URLSearchParams(url.split('?')[1]);
         const token = params.get('access_token');
         const refreshToken = params.get('refresh_token');
         
         if (token && refreshToken) {
-          // Set the session
+         
           supabase.auth.setSession({
             access_token: token,
             refresh_token: refreshToken,
@@ -108,7 +108,7 @@ const linking: LinkingOptions<RootParamList> = {
   },
 };
 
-// ✅ Loading Screen Component
+
 const LoadingScreen = () => {
   const { colors } = useTheme();
   return (
@@ -121,12 +121,12 @@ const LoadingScreen = () => {
 function RootNavigator() {
   const { user, isInitializing } = useAuth();
   
-  // ✅ Show loading screen while checking for stored user
+  
   if (isInitializing) {
     return <LoadingScreen />;
   }
   
-  // ✅ User exists → MainApp, otherwise → Auth
+  
   return user ? <MainNavigator /> : <AuthNavigator />;
 }
 

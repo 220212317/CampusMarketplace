@@ -1,4 +1,3 @@
-// src/screens/AdminUsersScreen.tsx
 import React, { useState, useEffect } from 'react';
 import {
   View,
@@ -31,7 +30,6 @@ function AdminUsersContent({ navigation }: any) {
   const [userProducts, setUserProducts] = useState<any[]>([]);
   const [loadingProducts, setLoadingProducts] = useState(false);
   
-  // Add user form
   const [newUserEmail, setNewUserEmail] = useState('');
   const [newUserPassword, setNewUserPassword] = useState('');
   const [newUserRole, setNewUserRole] = useState('Student');

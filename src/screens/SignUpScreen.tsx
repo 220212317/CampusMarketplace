@@ -1,4 +1,4 @@
-// src/screens/SignUpScreen.tsx
+
 import React, { useState, useEffect } from 'react';
 import {
   View,
@@ -32,7 +32,7 @@ export default function SignUpScreen({ navigation }: any) {
 
   const roles = ['Community', 'Vendor'];
 
-  // Auto-detect role based on email domain
+  
   useEffect(() => {
     detectRoleFromEmail(email);
   }, [email]);
@@ -78,7 +78,7 @@ export default function SignUpScreen({ navigation }: any) {
   };
 
   const handleSignUp = async () => {
-    // Validate email
+    
     if (!email) {
       Alert.alert('Error', 'Please enter your email address');
       return;
@@ -89,7 +89,7 @@ export default function SignUpScreen({ navigation }: any) {
       return;
     }
 
-    // Validate password
+   
     if (!password) {
       Alert.alert('Error', 'Please enter a password');
       return;
@@ -105,25 +105,25 @@ export default function SignUpScreen({ navigation }: any) {
       return;
     }
 
-    // For non-CPUT emails, require role selection
+    
     const domain = email.split('@')[1].toLowerCase();
     if (domain !== 'mycput.ac.za' && domain !== 'cput.ac.za' && !role) {
       Alert.alert('Error', 'Please select your role');
       return;
     }
 
-    // Validate terms
+    
     if (!agreeToTerms) {
       Alert.alert('Error', 'Please agree to the Terms & Conditions');
       return;
     }
 
     try {
-      // Call signUp from AuthContext
+      
       const signUpResult = await signUp(email, password, role);
       
       if (signUpResult && signUpResult.success) {
-        // Show success alert
+        
         Alert.alert(
           'Verification Code Sent',
           `We've sent a 6-digit verification code to ${email}. Please check your email and enter the code to verify your account.`,
@@ -131,7 +131,7 @@ export default function SignUpScreen({ navigation }: any) {
             {
               text: 'Enter Code',
               onPress: () => {
-                // Navigate to EmailVerification screen
+                
                 navigation.navigate('EmailVerification', { 
                   email: email,
                   role: signUpResult.user.role,

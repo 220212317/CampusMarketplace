@@ -22,17 +22,15 @@ export default function CartScreen({ navigation }: any) {
   const [couponCode, setCouponCode] = useState('');
   const [discount, setDiscount] = useState(0);
 
-  // Get the total selling price (includes VAT)
   const totalSellingPrice = getTotal();
   
-  // Calculate VAT (15% of the selling price)
-  // VAT = Selling Price * 15 / 115
+  
   const vatAmount = totalSellingPrice * (15 / 115);
   
-  // Calculate subtotal (Selling Price - VAT)
+  
   const subtotal = totalSellingPrice - vatAmount;
   
-  // Final total (Selling Price - Discount)
+  
   const finalTotal = totalSellingPrice - discount;
 
   const handleApplyCoupon = () => {

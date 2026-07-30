@@ -1,4 +1,3 @@
-// src/lib/chatSubscriptions.ts
 import { supabase } from './supabase';
 
 class ChatSubscriptionManager {
@@ -7,12 +6,12 @@ class ChatSubscriptionManager {
   subscribeToMessages(conversationId: string, onMessage: (message: any) => void) {
     const channelName = `messages:${conversationId}`;
     
-    // Clean up existing subscription
+    
     this.unsubscribe(channelName);
     
     console.log('📡 Setting up message subscription for conversation:', conversationId);
     
-    // Create a completely fresh channel
+    
     const channel = supabase.channel(channelName, {
       config: {
         broadcast: { self: false },
@@ -20,7 +19,7 @@ class ChatSubscriptionManager {
       },
     });
     
-    // Add all callbacks BEFORE subscribing
+    
     channel
       .on(
         'postgres_changes',
@@ -36,7 +35,7 @@ class ChatSubscriptionManager {
         }
       );
     
-    // Now subscribe after all callbacks are registered
+    
     channel.subscribe((status, err) => {
       if (status === 'SUBSCRIBED') {
         console.log('✅ Message subscription active for:', conversationId);
@@ -54,12 +53,12 @@ class ChatSubscriptionManager {
   subscribeToConversations(userId: string, onUpdate: (conversation: any) => void) {
     const channelName = `conversations:${userId}`;
     
-    // Clean up existing subscription
+    
     this.unsubscribe(channelName);
     
     console.log('📡 Setting up conversation subscription for user:', userId);
     
-    // Create a completely fresh channel
+    
     const channel = supabase.channel(channelName, {
       config: {
         broadcast: { self: false },
@@ -67,7 +66,7 @@ class ChatSubscriptionManager {
       },
     });
     
-    // Add all callbacks BEFORE subscribing
+    
     channel
       .on(
         'postgres_changes',
@@ -96,7 +95,7 @@ class ChatSubscriptionManager {
         }
       );
     
-    // Now subscribe after all callbacks are registered
+    
     channel.subscribe((status, err) => {
       if (status === 'SUBSCRIBED') {
         console.log('✅ Conversation subscription active for:', userId);

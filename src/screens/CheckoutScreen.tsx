@@ -1,4 +1,3 @@
-// src/screens/CheckoutScreen.tsx
 import React, { useState } from 'react';
 import {
   View,
@@ -57,7 +56,7 @@ export default function CheckoutScreen({ route, navigation }: any) {
   const handleConfirmPayment = async () => {
     setIsProcessing(true);
     try {
-      // ✅ Step 1: Create order first
+      
       const orderData = {
         userId: user?.id || '',
         total: finalTotal,
@@ -72,7 +71,7 @@ export default function CheckoutScreen({ route, navigation }: any) {
       const order = await orderAPI.create(orderData);
       console.log('✅ Order created with ID:', order.id);
 
-      // ✅ Step 2: Process payment
+      
       const result = await paymentAPI.processPayment({
         amount: finalTotal,
         method: 'Card',
@@ -85,7 +84,7 @@ export default function CheckoutScreen({ route, navigation }: any) {
       });
 
       if (result.success) {
-        // ✅ Step 3: Create receipt
+        
         const receiptData = {
           orderId: order.id,
           userId: user?.id || '',
@@ -104,7 +103,7 @@ export default function CheckoutScreen({ route, navigation }: any) {
         const receipt = await receiptAPI.createReceipt(receiptData);
         console.log('✅ Receipt created:', receipt);
 
-        // ✅ Step 4: Send receipt email
+        
         await receiptAPI.sendReceiptEmail({
           email: user?.email || '',
           receiptNumber: receipt.receipt_number,

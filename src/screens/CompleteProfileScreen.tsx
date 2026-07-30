@@ -1,4 +1,3 @@
-// src/screens/CompleteProfileScreen.tsx
 import React, { useState } from 'react';
 import {
   View,
@@ -23,31 +22,31 @@ export default function CompleteProfileScreen({ route, navigation }: any) {
   const { email, isNewUser, role, userId: paramUserId } = route.params || {};
   const [isLoading, setIsLoading] = useState(false);
   
-  // Personal Information
+  
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
   const [displayName, setDisplayName] = useState('');
   const [phoneNumber, setPhoneNumber] = useState('');
   const [bio, setBio] = useState('');
   
-  // Student Specific
+  
   const [studentNumber, setStudentNumber] = useState('');
   const [course, setCourse] = useState('');
   const [yearOfStudy, setYearOfStudy] = useState('');
   
-  // Staff Specific
+  
   const [staffId, setStaffId] = useState('');
   const [department, setDepartment] = useState('');
   const [position, setPosition] = useState('');
   
-  // Vendor Specific
+  
   const [businessName, setBusinessName] = useState('');
   const [businessType, setBusinessType] = useState('');
   const [businessDescription, setBusinessDescription] = useState('');
   const [businessRegistrationNumber, setBusinessRegistrationNumber] = useState('');
   const [businessAddress, setBusinessAddress] = useState('');
   
-  // Community Specific
+  
   const [communityType, setCommunityType] = useState('');
 
   const userRole = role || user?.role || 'Student';
@@ -64,10 +63,10 @@ export default function CompleteProfileScreen({ route, navigation }: any) {
     return phoneRegex.test(cleaned);
   };
 
-  // Helper function to ensure profile exists
+  
   const ensureProfileExists = async (userId: string, email: string, role: string) => {
     try {
-      // Check if profile exists
+      
       const { data: existingProfile, error: checkError } = await supabase
         .from('profiles')
         .select('id')
@@ -80,7 +79,7 @@ export default function CompleteProfileScreen({ route, navigation }: any) {
       }
 
       if (!existingProfile) {
-        // Profile doesn't exist, create it
+       
         console.log('📝 Creating new profile for user:', userId);
         const { error: insertError } = await supabase
           .from('profiles')
@@ -120,7 +119,7 @@ export default function CompleteProfileScreen({ route, navigation }: any) {
       return;
     }
 
-    // Validate required fields
+    
     if (!firstName.trim()) {
       Alert.alert('Error', 'Please enter your first name');
       return;
@@ -201,10 +200,10 @@ export default function CompleteProfileScreen({ route, navigation }: any) {
     setIsLoading(true);
 
     try {
-      // ✅ Step 1: Ensure profile exists
+   
       await ensureProfileExists(userId, email || user?.email || '', userRole);
 
-      // ✅ Step 2: Prepare profile data
+      
       const profileData = {
         firstName: firstName.trim(),
         lastName: lastName.trim(),
@@ -225,12 +224,12 @@ export default function CompleteProfileScreen({ route, navigation }: any) {
         communityType: communityType.trim(),
       };
 
-      // ✅ Step 3: Update profile
+     
       console.log('📝 Updating profile for user:', userId);
       const result = await profileAPI.updateProfile(userId, profileData);
       
       if (result.success) {
-        // ✅ Step 4: Mark profile as completed
+       
         const { error: flagError } = await supabase
           .from('profiles')
           .update({ 
@@ -243,12 +242,6 @@ export default function CompleteProfileScreen({ route, navigation }: any) {
           console.log('⚠️ Failed to set profile_completed flag:', flagError);
         }
 
-        // ✅ Step 5: Force sign out of any Supabase session, then go to Login
-        // This guarantees the user lands on Login regardless of whether
-        // Supabase auto-created a session during signUp (e.g. if email
-        // confirmation is ever disabled in the Supabase project settings).
-        // Without this, an app-level auth listener could route straight
-        // into MainNavigator before this reset takes effect.
         await supabase.auth.signOut();
 
         Alert.alert(

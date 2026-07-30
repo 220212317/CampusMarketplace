@@ -1,4 +1,3 @@
-// src/screens/NewPasswordScreen.tsx
 import React, { useState } from 'react';
 import {
   View,
@@ -60,7 +59,7 @@ export default function NewPasswordScreen({ route, navigation }: any) {
 
     setIsLoading(true);
     try {
-      // Update the password using the current session
+      
       const result = await authAPI.updatePassword(newPassword);
       
       if (result.success) {
@@ -71,7 +70,7 @@ export default function NewPasswordScreen({ route, navigation }: any) {
             {
               text: 'Sign In',
               onPress: () => {
-                // Sign out to ensure clean state
+                
                 supabase.auth.signOut();
                 navigation.reset({
                   index: 0,

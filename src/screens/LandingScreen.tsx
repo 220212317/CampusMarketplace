@@ -1,4 +1,3 @@
-// src/screens/LandingScreen.tsx (Supabase version)
 import React, { useEffect, useRef, useState } from 'react';
 import {
   View,
@@ -18,7 +17,6 @@ import { supabase } from '../lib/supabase';
 
 const { width } = Dimensions.get('window');
 
-// Design system tokens
 const COLORS = {
   cream: '#fdf6f0',
   terracotta: '#c75c3e',
@@ -34,8 +32,7 @@ export default function LandingScreen({ navigation }: any) {
   const scaleAnim = useRef(new Animated.Value(0.9)).current;
   const slideAnim = useRef(new Animated.Value(30)).current;
   
-  // State for live stats
-  const [stats, setStats] = useState({
+   const [stats, setStats] = useState({
     users: 0,
     reviews: 0,
   });
@@ -66,7 +63,7 @@ export default function LandingScreen({ navigation }: any) {
 
   const fetchStats = async () => {
     try {
-      // Fetch counts from Supabase
+      
       const [usersResult, reviewsResult] = await Promise.all([
         supabase.from('profiles').select('*', { count: 'exact', head: true }),
         supabase.from('reviews').select('*', { count: 'exact', head: true }),
@@ -78,7 +75,7 @@ export default function LandingScreen({ navigation }: any) {
       });
     } catch (error) {
       console.error('Error fetching stats:', error);
-      // Set fallback values
+      
       setStats({
         users: 0,
         reviews: 0,
@@ -88,7 +85,7 @@ export default function LandingScreen({ navigation }: any) {
     }
   };
 
-  // Format number with K suffix
+  
   const formatNumber = (num: number) => {
     if (num >= 1000) {
       return (num / 1000).toFixed(1) + 'K';
@@ -96,7 +93,7 @@ export default function LandingScreen({ navigation }: any) {
     return num.toString();
   };
 
-  // Define stats display items with real data
+  
   const STATS_ITEMS = [
     { 
       value: formatNumber(stats.users), 

@@ -1,4 +1,3 @@
-// src/utils/vat.ts
 export const VAT_RATE = 15;
 
 export const calculateVAT = (price: number) => {

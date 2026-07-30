@@ -25,8 +25,7 @@ const TYPE_STYLES: Record<PostType, { icon: keyof typeof Ionicons.glyphMap; bg: 
   'Lost & Found': { icon: 'search-outline', bg: '#FDECEA', badgeBg: '#FBDAD6' },
 };
 
-// Small icon shown inside each filter pill so the row is scannable at a glance,
-// matching the icons already used on the post-type badges.
+
 const FILTER_ICONS: Record<'All' | PostType, keyof typeof Ionicons.glyphMap> = {
   All: 'apps-outline',
   General: 'chatbubble-outline',
@@ -75,7 +74,6 @@ export default function BulletinScreen({ navigation }: any) {
   const filteredPosts =
     activeFilter === 'All' ? posts : posts.filter((p) => p.type === activeFilter);
 
-  // Per-type counts so each pill can show how many posts it holds, e.g. "Event (3)".
   const filterCounts = FILTER_TYPES.reduce<Record<string, number>>((acc, filter) => {
     acc[filter] = filter === 'All' ? posts.length : posts.filter((p) => p.type === filter).length;
     return acc;

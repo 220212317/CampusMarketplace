@@ -33,7 +33,7 @@ export default function LoginScreen({ navigation }: any) {
     try {
       await signIn(username, password);
       
-      // Check if profile exists
+      
       try {
         const { data: profile } = await supabase
           .from('profiles')
@@ -66,7 +66,7 @@ export default function LoginScreen({ navigation }: any) {
           }
         }
 
-        // ✅ Check if user is admin - skip profile completion
+        
         if (currentProfile?.is_admin === true && currentProfile?.role === 'Admin') {
           console.log('👑 Admin user logged in, skipping profile check');
           navigation.reset({
@@ -76,7 +76,7 @@ export default function LoginScreen({ navigation }: any) {
           return;
         }
 
-        // ✅ For non-admin users, check if profile is completed
+        
         if (!currentProfile || !currentProfile.profile_completed) {
           navigation.replace('CompleteProfile', {
             email: username,
@@ -87,7 +87,7 @@ export default function LoginScreen({ navigation }: any) {
         }
       } catch (profileError) {
         console.log('⚠️ Profile check error:', profileError);
-        // If profile doesn't exist, go to CompleteProfile
+        
         navigation.replace('CompleteProfile', {
           email: username,
           role: 'Student',
@@ -96,13 +96,13 @@ export default function LoginScreen({ navigation }: any) {
         return;
       }
 
-      // Navigate to MainTabs
+      
       navigation.reset({
         index: 0,
         routes: [{ name: 'MainTabs' }],
       });
     } catch (error: any) {
-      // Handle "Email not confirmed" error
+      
       if (error.message && error.message.includes('Email not confirmed')) {
         Alert.alert(
           'Email Not Verified',

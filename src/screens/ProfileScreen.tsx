@@ -49,7 +49,7 @@ export default function ProfileScreen({ navigation }: any) {
         console.error('Error loading profile photo:', error);
       } else if (profile?.profile_photo_url) {
         console.log('✅ Loaded profile photo URL:', profile.profile_photo_url);
-        // Add cache-busting timestamp
+        
         const separator = profile.profile_photo_url.includes('?') ? '&' : '?';
         setProfilePhoto(`${profile.profile_photo_url}${separator}t=${Date.now()}`);
         setImageError(false);
@@ -149,13 +149,12 @@ export default function ProfileScreen({ navigation }: any) {
       const result = await storageAPI.uploadProfilePhoto(user.id, file);
       console.log('✅ Upload result:', result);
       
-      // Set the photo URL with cache-busting
+      
       const separator = result.url.includes('?') ? '&' : '?';
       setProfilePhoto(`${result.url}${separator}t=${Date.now()}`);
       setImageError(false);
       setImageLoading(true);
       
-      // Update user context
       if (user) {
         user.profilePhoto = result.url;
       }
