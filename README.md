@@ -17,10 +17,11 @@
     - [Constraints](#constraints)
     - [Assumptions](#assumptions)
   - [5. Expected Outcomes](#5-expected-outcomes)
-  - [6. Tech Stack](#6-tech-stack)
-  - [7. Core Features Implemented](#7-core-features-implemented)
-  - [8. Project Structure](#8-project-structure)
-  - [9. User Roles](#9-user-roles)
+  - [6. Design \& Prototype](#6-design--prototype)
+  - [7. Tech Stack](#7-tech-stack)
+  - [8. Core Features Implemented](#8-core-features-implemented)
+  - [9. Project Structure](#9-project-structure)
+  - [10. User Roles](#10-user-roles)
 
 
 ---
@@ -93,7 +94,15 @@ The app is managed as a real Agile software project.
 
 ---
 
-## 6. Tech Stack
+## 6. Design & Prototype
+
+An interactive Figma prototype covering the app's core flows is available here:
+
+🔗 [CampusMarketplace — Figma Prototype](https://www.figma.com/proto/6nZEkPUxk3kO67MQCXB9To/Campus-Marketplace?node-id=1-2&p=f&t=csKOgLOAwJwyw3hA-1&scaling=scale-down&content-scaling=fixed&page-id=0%3A1&starting-point-node-id=1%3A2&show-proto-sidebar=1)
+
+---
+
+## 7. Tech Stack
 
 | Layer | Technology |
 | :--- | :--- |
@@ -108,7 +117,7 @@ The app is managed as a real Agile software project.
 
 ---
 
-## 7. Core Features Implemented
+## 8. Core Features Implemented
 
 * 🔐 **Authentication:** Email/password sign-up, email verification, and OTP password resets.
 * 👤 **Profile System:** Role-based onboarding for Students, Staff, Vendors, and Residents.
@@ -120,7 +129,7 @@ The app is managed as a real Agile software project.
 
 ---
 
-## 8. Project Structure
+## 9. Project Structure
 
 ```text
 CampusMarketplace/
@@ -141,7 +150,7 @@ CampusMarketplace/
 │   └── utils/
 ```
 
-## 9. User Roles
+## 10. User Roles
 
 | Role | Access & Capabilities |
 | :--- | :--- |
@@ -150,4 +159,3 @@ CampusMarketplace/
 | **Vendor** | Verified business profile with store details, business type, and address. |
 | **Resident** | Local community account for general buying, selling, and posting. |
 | **Admin** | Restricted access for platform moderation, content review, and verification checks. |
-
