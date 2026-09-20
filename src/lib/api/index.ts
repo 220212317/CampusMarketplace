@@ -9,6 +9,9 @@ export { storageAPI } from './storageApi';
 export { receiptAPI } from './receiptApi';
 export { chatAPI } from './chatApi';
 export { adminAPI } from './adminApi';
+export { addressAPI } from './addressApi';
+export { paymentMethodAPI } from './paymentMethodApi';
+export { supportAPI } from './supportApi';
 
 import { authAPI } from './authApi';
 import { verificationAPI } from './verificationApi';
@@ -21,6 +24,9 @@ import { storageAPI } from './storageApi';
 import { receiptAPI } from './receiptApi';
 import { chatAPI } from './chatApi';
 import { adminAPI } from './adminApi';
+import { addressAPI } from './addressApi';
+import { paymentMethodAPI } from './paymentMethodApi';
+import { supportAPI } from './supportApi';
 
 export default {
   authAPI,
@@ -34,4 +40,7 @@ export default {
   receiptAPI,
   chatAPI,
   adminAPI,
+  addressAPI,
+  paymentMethodAPI,
+  supportAPI,
 };
