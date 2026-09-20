@@ -1,6 +1,6 @@
 # 🎓 CampusMarketplace
 
-> A mobile-first community marketplace built with **React Native (Expo)** and **Supabase**, developed as the practical artefact for the **Project Management 3 (PRM370/371/372S)** group project — *"Community Store Project"*
+> A mobile-first community marketplace built with **React Native (Expo)** and **Supabase**, developed as the practical artefact for the **Project Management 3 (PRM372S)** group project — *"Community Store Project"*
 
 ---
 
