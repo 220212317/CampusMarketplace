@@ -19,6 +19,9 @@ import ChatListScreen from '../screens/ChatListScreen';
 import ChatDetailScreen from '../screens/ChatDetailScreen';
 import AdminUsersScreen from '../screens/AdminUsersScreen';
 import AdminUserDetailScreen from '../screens/AdminUserDetailScreen';
+import AddressScreen from '../screens/AddressScreen';
+import PaymentMethodsScreen from '../screens/PaymentMethodsScreen';
+import HelpCenterScreen from '../screens/HelpCenterScreen';
 
 const Tab = createBottomTabNavigator();
 const Stack = createStackNavigator();
@@ -87,6 +90,9 @@ export default function MainNavigator() {
       <Stack.Screen name="ChatDetail" component={ChatDetailScreen} />
       <Stack.Screen name="AdminUsers" component={AdminUsersScreen} />
       <Stack.Screen name="AdminUserDetail" component={AdminUserDetailScreen} />
+      <Stack.Screen name="Address" component={AddressScreen} />
+      <Stack.Screen name="PaymentMethods" component={PaymentMethodsScreen} />
+      <Stack.Screen name="HelpCenter" component={HelpCenterScreen} />
     </Stack.Navigator>
   );
 }
