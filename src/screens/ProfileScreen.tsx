@@ -278,12 +278,12 @@ export default function ProfileScreen({ navigation }: any) {
     {
       icon: 'location-outline',
       title: 'Address',
-      onPress: () => Alert.alert('Coming Soon', 'Address management will be available soon'),
+      onPress: () => navigation.navigate('Address'),
     },
     {
       icon: 'card-outline',
       title: 'Payment Methods',
-      onPress: () => Alert.alert('Coming Soon', 'Payment methods will be available soon'),
+      onPress: () => navigation.navigate('PaymentMethods'),
     },
     {
       icon: 'shield-outline',
@@ -293,7 +293,7 @@ export default function ProfileScreen({ navigation }: any) {
     {
       icon: 'help-circle-outline',
       title: 'Help Center',
-      onPress: () => Alert.alert('Coming Soon', 'Help center will be available soon'),
+      onPress: () => navigation.navigate('HelpCenter'),
     },
   ];
 
